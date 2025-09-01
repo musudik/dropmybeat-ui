@@ -85,6 +85,17 @@ const DialogFooter = ({ className, ...props }) => (
 )
 DialogFooter.displayName = "DialogFooter"
 
+const DialogTrigger = React.forwardRef(({ className, children, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={className}
+    {...props}
+  >
+    {children}
+  </div>
+))
+DialogTrigger.displayName = "DialogTrigger"
+
 export {
   Dialog,
   DialogContent,
@@ -92,4 +103,5 @@ export {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 }

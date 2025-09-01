@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Button } from '../components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
-import { Music, Users, Calendar, Zap, Star, ArrowRight, Play, Headphones, Radio } from 'lucide-react'
+import { Music, Users, Calendar, Zap, Star, ArrowRight, Play, Headphones, Radio, Volume2, Mic, Speaker, Disc3 } from 'lucide-react'
 import { containerVariants, slideInVariants, fadeVariants } from '../lib/animations'
 import AnimatedPage from '../components/AnimatedPage'
 
@@ -12,97 +12,135 @@ const LandingPage = () => {
   const features = [
     {
       icon: Music,
-      title: "Song Requests",
-      description: "Request your favorite songs and let the crowd decide what plays next",
-      color: "text-pink-400"
+      title: "Interactive Playlists",
+      description: "Crowd-sourced music selection with real-time voting and requests",
+      color: "text-cyan-400",
+      gradient: "from-cyan-500/20 to-blue-500/20"
     },
     {
       icon: Users,
-      title: "Event Management",
-      description: "Create and manage events with real-time participant tracking",
-      color: "text-blue-400"
-    },
-    {
-      icon: Calendar,
       title: "Live Events",
-      description: "Join live music events and connect with other music lovers",
-      color: "text-green-400"
+      description: "Connect with music lovers at live venues and virtual events",
+      color: "text-pink-400",
+      gradient: "from-pink-500/20 to-purple-500/20"
     },
     {
       icon: Zap,
-      title: "Real-time Updates",
-      description: "Get instant notifications about event updates and song approvals",
-      color: "text-yellow-400"
+      title: "Real-time Sync",
+      description: "Instant updates and synchronized experiences across all devices",
+      color: "text-yellow-400",
+      gradient: "from-yellow-500/20 to-orange-500/20"
+    },
+    {
+      icon: Speaker,
+      title: "Premium Audio",
+      description: "High-quality streaming with professional sound management",
+      color: "text-green-400",
+      gradient: "from-green-500/20 to-emerald-500/20"
     }
   ]
 
   const stats = [
-    { label: "Active Events", value: "50+", icon: Calendar },
-    { label: "Song Requests", value: "1000+", icon: Music },
-    { label: "Happy Users", value: "500+", icon: Users },
-    { label: "Cities", value: "25+", icon: Star }
+    { label: "Live Events", value: "150+", icon: Calendar, color: "text-cyan-400" },
+    { label: "Songs Played", value: "10K+", icon: Music, color: "text-pink-400" },
+    { label: "Active DJs", value: "500+", icon: Disc3, color: "text-yellow-400" },
+    { label: "Cities", value: "50+", icon: Star, color: "text-green-400" }
   ]
 
   return (
     <AnimatedPage>
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-background/50">
+      <div className="min-h-screen bg-black relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-black to-cyan-900/30" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.1),transparent_50%)]" />
+          
+          {/* Animated Grid */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="h-full w-full bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,black,transparent)]" />
+          </div>
+        </div>
+
         {/* Hero Section */}
-        <section className="relative overflow-hidden py-20 lg:py-32">
-          <div className="absolute inset-0 bg-gradient-to-r from-pink-500/10 to-purple-600/10" />
-          <div className="container mx-auto px-4 relative">
+        <section className="relative min-h-screen flex items-center justify-center py-20">
+          <div className="container mx-auto px-4 relative z-10">
             <motion.div 
-              className="text-center space-y-8 max-w-4xl mx-auto"
+              className="text-center space-y-8 max-w-6xl mx-auto"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
               <motion.div variants={slideInVariants.down}>
-                <Badge variant="neon" className="mb-4 text-sm px-4 py-2">
-                  🎵 The Future of Music Events
+                <Badge variant="neon" className="mb-6 text-sm px-6 py-3 bg-gradient-to-r from-cyan-500/20 to-pink-500/20 border-cyan-400/50">
+                  🎵 Next-Gen Music Experience
                 </Badge>
               </motion.div>
               
               <motion.h1 
-                className="text-5xl lg:text-7xl font-bold bg-gradient-to-r from-pink-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent leading-tight"
+                className="text-6xl lg:text-8xl xl:text-9xl font-black bg-gradient-to-r from-cyan-400 via-pink-500 to-purple-600 bg-clip-text text-transparent leading-none tracking-tight"
                 variants={slideInVariants.up}
               >
-                Drop My Beat
+                DROP MY
+                <br />
+                <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
+                  BEAT
+                </span>
               </motion.h1>
               
               <motion.p 
-                className="text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
+                className="text-xl lg:text-3xl text-gray-300 max-w-4xl mx-auto leading-relaxed font-light"
                 variants={slideInVariants.up}
               >
-                The ultimate platform for interactive music events. Request songs, join events, and let the crowd control the vibe.
+                Where music meets technology. Create, share, and experience 
+                <span className="text-transparent bg-gradient-to-r from-cyan-400 to-pink-400 bg-clip-text font-semibold">
+                  interactive soundscapes
+                </span> like never before.
               </motion.p>
               
               <motion.div 
-                className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+                className="flex flex-col sm:flex-row gap-6 justify-center items-center pt-8"
                 variants={slideInVariants.up}
               >
-                <Button asChild size="lg" className="text-lg px-8 py-6">
+                <Button asChild size="lg" className="text-lg px-12 py-8 bg-gradient-to-r from-cyan-500 to-pink-500 hover:from-cyan-400 hover:to-pink-400 border-0 shadow-[0_0_30px_rgba(6,182,212,0.3)] hover:shadow-[0_0_50px_rgba(6,182,212,0.5)] transition-all duration-300">
                   <Link to="/auth/register">
-                    Get Started
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <Play className="mr-3 h-6 w-6" />
+                    Start Creating
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
+                <Button asChild variant="outline" size="lg" className="text-lg px-12 py-8 border-cyan-400/50 text-cyan-400 hover:bg-cyan-400/10 hover:border-cyan-400 transition-all duration-300">
                   <Link to="/auth/login">
-                    <Play className="mr-2 h-5 w-5" />
-                    Sign In
+                    <Headphones className="mr-3 h-6 w-6" />
+                    Join Session
                   </Link>
                 </Button>
               </motion.div>
             </motion.div>
           </div>
           
-          {/* Floating Music Icons */}
+          {/* Floating Audio Elements */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {/* Large Vinyl Record */}
             <motion.div
-              className="absolute top-20 left-10 text-pink-400/20"
+              className="absolute top-1/4 -left-20 text-cyan-400/10"
               animate={{
-                y: [0, -20, 0],
-                rotate: [0, 5, 0]
+                rotate: [0, 360]
+              }}
+              transition={{
+                duration: 20,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+            >
+              <Disc3 className="h-40 w-40" />
+            </motion.div>
+            
+            {/* Floating Music Notes */}
+            <motion.div
+              className="absolute top-20 right-10 text-pink-400/20"
+              animate={{
+                y: [0, -30, 0],
+                rotate: [0, 10, 0],
+                scale: [1, 1.1, 1]
               }}
               transition={{
                 duration: 4,
@@ -110,43 +148,67 @@ const LandingPage = () => {
                 ease: "easeInOut"
               }}
             >
-              <Music className="h-12 w-12" />
+              <Music className="h-16 w-16" />
             </motion.div>
+            
             <motion.div
-              className="absolute top-40 right-20 text-purple-400/20"
+              className="absolute bottom-1/4 right-20 text-purple-400/15"
               animate={{
-                y: [0, 20, 0],
-                rotate: [0, -5, 0]
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 1
-              }}
-            >
-              <Headphones className="h-16 w-16" />
-            </motion.div>
-            <motion.div
-              className="absolute bottom-20 left-20 text-cyan-400/20"
-              animate={{
-                y: [0, -15, 0],
-                rotate: [0, 10, 0]
+                y: [0, 25, 0],
+                rotate: [0, -15, 0]
               }}
               transition={{
                 duration: 5,
                 repeat: Infinity,
                 ease: "easeInOut",
+                delay: 1
+              }}
+            >
+              <Speaker className="h-24 w-24" />
+            </motion.div>
+            
+            <motion.div
+              className="absolute top-1/2 left-10 text-yellow-400/20"
+              animate={{
+                x: [0, 20, 0],
+                y: [0, -20, 0],
+                rotate: [0, 5, 0]
+              }}
+              transition={{
+                duration: 6,
+                repeat: Infinity,
+                ease: "easeInOut",
                 delay: 2
               }}
             >
-              <Radio className="h-10 w-10" />
+              <Mic className="h-12 w-12" />
             </motion.div>
+          </div>
+          
+          {/* Audio Visualizer Effect */}
+          <div className="absolute bottom-0 left-0 right-0 h-32 opacity-30">
+            <div className="flex items-end justify-center space-x-1 h-full">
+              {Array.from({ length: 50 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="bg-gradient-to-t from-cyan-500 to-pink-500 w-1"
+                  animate={{
+                    height: ["10%", `${Math.random() * 80 + 20}%`, "10%"]
+                  }}
+                  transition={{
+                    duration: 0.5 + Math.random() * 0.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: i * 0.1
+                  }}
+                />
+              ))}
+            </div>
           </div>
         </section>
 
         {/* Stats Section */}
-        <section className="py-16 bg-muted/30">
+        <section className="py-20 relative">
           <div className="container mx-auto px-4">
             <motion.div 
               className="grid grid-cols-2 lg:grid-cols-4 gap-8"
@@ -162,11 +224,11 @@ const LandingPage = () => {
                     key={stat.label}
                     variants={slideInVariants.up}
                     custom={index}
-                    className="text-center space-y-2"
+                    className="text-center space-y-4 p-6 rounded-2xl bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border border-white/10 hover:border-cyan-400/30 transition-all duration-300 group"
                   >
-                    <Icon className="h-8 w-8 mx-auto text-pink-400" />
-                    <div className="text-3xl font-bold text-foreground">{stat.value}</div>
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+                    <Icon className={`h-12 w-12 mx-auto ${stat.color} group-hover:scale-110 transition-transform duration-300`} />
+                    <div className="text-4xl font-black text-white">{stat.value}</div>
+                    <div className="text-sm text-gray-400 uppercase tracking-wider">{stat.label}</div>
                   </motion.div>
                 )
               })}
@@ -175,25 +237,27 @@ const LandingPage = () => {
         </section>
 
         {/* Features Section */}
-        <section className="py-20">
+        <section className="py-20 relative">
           <div className="container mx-auto px-4">
             <motion.div 
-              className="text-center space-y-4 mb-16"
+              className="text-center space-y-6 mb-20"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <h2 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-pink-400 to-purple-600 bg-clip-text text-transparent">
-                Why Choose DropMyBeat?
+              <h2 className="text-5xl lg:text-7xl font-black bg-gradient-to-r from-cyan-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+                EXPERIENCE
+                <br />
+                THE FUTURE
               </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Experience music events like never before with our cutting-edge features
+              <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+                Revolutionary features that transform how you create, share, and experience music
               </p>
             </motion.div>
             
             <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+              className="grid grid-cols-1 md:grid-cols-2 gap-8"
               variants={containerVariants}
               initial="hidden"
               whileInView="visible"
@@ -203,13 +267,14 @@ const LandingPage = () => {
                 const Icon = feature.icon
                 return (
                   <motion.div key={feature.title} variants={slideInVariants.up} custom={index}>
-                    <Card className="h-full text-center hover:shadow-lg transition-shadow duration-300">
-                      <CardHeader>
-                        <Icon className={`h-12 w-12 mx-auto mb-4 ${feature.color}`} />
-                        <CardTitle className="text-xl">{feature.title}</CardTitle>
+                    <Card className={`h-full bg-gradient-to-br ${feature.gradient} backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-500 group overflow-hidden relative`}>
+                      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <CardHeader className="relative z-10 pb-4">
+                        <Icon className={`h-16 w-16 mb-6 ${feature.color} group-hover:scale-110 transition-transform duration-300`} />
+                        <CardTitle className="text-2xl font-bold text-white">{feature.title}</CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <CardDescription className="text-base">
+                      <CardContent className="relative z-10">
+                        <CardDescription className="text-lg text-gray-300 leading-relaxed">
                           {feature.description}
                         </CardDescription>
                       </CardContent>
@@ -222,29 +287,38 @@ const LandingPage = () => {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-r from-pink-500/10 to-purple-600/10">
-          <div className="container mx-auto px-4">
+        <section className="py-32 relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-pink-500/10 to-purple-500/10" />
+          <div className="container mx-auto px-4 relative z-10">
             <motion.div 
-              className="text-center space-y-8 max-w-3xl mx-auto"
+              className="text-center space-y-10 max-w-4xl mx-auto"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
             >
-              <h2 className="text-4xl lg:text-5xl font-bold">
-                Ready to Drop Your Beat?
+              <h2 className="text-5xl lg:text-7xl font-black text-white leading-tight">
+                READY TO
+                <br />
+                <span className="bg-gradient-to-r from-cyan-400 to-pink-500 bg-clip-text text-transparent">
+                  DROP THE BEAT?
+                </span>
               </h2>
-              <p className="text-xl text-muted-foreground">
-                Join thousands of music lovers and start creating unforgettable experiences today.
+              <p className="text-xl text-gray-300 leading-relaxed">
+                Join the revolution. Create unforgettable musical experiences.
+                <br />
+                Your sound, your crowd, your moment.
               </p>
               <motion.div
+                className="pt-8"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Button asChild size="lg" variant="neon" className="text-lg px-12 py-6">
+                <Button asChild size="lg" className="text-xl px-16 py-10 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 hover:from-pink-400 hover:via-purple-400 hover:to-cyan-400 border-0 shadow-[0_0_50px_rgba(236,72,153,0.3)] hover:shadow-[0_0_80px_rgba(236,72,153,0.5)] transition-all duration-300">
                   <Link to="/auth/register">
-                    Start Your Journey
-                    <Music className="ml-2 h-5 w-5" />
+                    <Volume2 className="mr-4 h-8 w-8" />
+                    START YOUR JOURNEY
+                    <ArrowRight className="ml-4 h-8 w-8" />
                   </Link>
                 </Button>
               </motion.div>
