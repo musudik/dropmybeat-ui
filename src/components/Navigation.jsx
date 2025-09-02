@@ -24,8 +24,12 @@ const Navigation = () => {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link to="/dashboard" className="text-xl font-bold text-neon-pink">
-              DropMyBeats
+            <Link to="/dashboard" className="flex items-center">
+              <img 
+                src="/src/assets/DropMyBeats.gif" 
+                alt="DropMyBeats Logo" 
+                className="h-10 w-auto"
+              />
             </Link>
             
             <div className="ml-10 flex items-baseline space-x-4">

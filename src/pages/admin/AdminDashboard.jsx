@@ -7,7 +7,7 @@ import { Input } from '../../components/ui/Input'
 import { Label } from '../../components/ui/Label'
 import { Badge } from '../../components/ui/Badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/Dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger } from '../../components/ui/Select'
+import { Select, SelectItem, SelectTrigger, SelectContent } from '../../components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/Avatar'
 import { Toast, ToastTitle, ToastDescription } from '../../components/ui/Toast'
 
@@ -230,14 +230,9 @@ const AdminDashboard = () => {
               />
             </div>
             <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="w-full sm:w-48">
-                {selectedRole === 'all' ? 'All Roles' : selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-              </SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="manager">Manager</SelectItem>
             </Select>
           </div>
 

@@ -4,8 +4,8 @@ import { Calendar, MapPin, Clock, Users, Music, Plus, Edit, Trash2, Search } fro
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog'
+import { Select, SelectItem } from '../components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../components/ui/dialog'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import toast from 'react-hot-toast'
@@ -18,9 +18,9 @@ const EventsPage = () => {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [joinedEvents, setJoinedEvents] = useState(new Set())
 
   useEffect(() => {
@@ -85,12 +85,33 @@ const EventsPage = () => {
     }
   }
 
-  // Event creation handler (lines 78-86)
   const handleCreateEvent = async (eventData) => {
     try {
-      await eventAPI.create(eventData)
+      // Create event data with exact fields as specified
+      const eventDataWithCreator = {
+        name: eventData.name,
+        description: eventData.description,
+        startTime: eventData.startTime,
+        endTime: eventData.endTime,
+        startDate: eventData.startDate,
+        endDate: eventData.endDate,
+        location: eventData.location,
+        maxParticipants: eventData.maxParticipants,
+        isPublic: eventData.isPublic,
+        allowSongRequests: eventData.allowSongRequests,
+        timeBombEnabled: eventData.timeBombEnabled,
+        timeBombDuration: eventData.timeBombDuration,
+        Venue: eventData.Venue,
+        'venue.name': eventData['venue.name'],
+        'venue.address': eventData['venue.address'],
+        'venue.city': eventData['venue.city'],
+        eventType: eventData.eventType,
+        createdBy: user?.id
+      }
+      
+      await eventAPI.create(eventDataWithCreator)
       toast.success('Event created successfully!')
-      setIsCreateDialogOpen(false)
+      setIsCreateModalOpen(false)
       fetchEvents()
     } catch (error) {
       console.error('Error creating event:', error)
@@ -98,18 +119,11 @@ const EventsPage = () => {
     }
   }
   
-  // Complete EventForm component (lines 409-538)
-  const EventForm = ({ initialData, onSubmit }) => {
-    // Full form implementation with validation
-    // Handles all event fields and submission
-  }
-
   const handleUpdateEvent = async (eventData) => {
     try {
       await eventAPI.update(selectedEvent.id, eventData)
       toast.success('Event updated successfully!')
-      setIsEditDialogOpen(false)
-      setSelectedEvent(null)
+      setIsEditModalOpen(false)
       fetchEvents()
     } catch (error) {
       console.error('Error updating event:', error)
@@ -171,7 +185,7 @@ const EventsPage = () => {
   return (
     <div className="min-h-screen bg-black text-white font-roboto">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-black via-gray-900 to-black py-16">
+      <div className="bg-gradient-to-r from-black via-gray-900 to-black py-6">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -179,9 +193,11 @@ const EventsPage = () => {
             transition={{ duration: 0.8 }}
             className="text-center mb-12"
           >
-            <h1 className="font-oswald text-6xl md:text-8xl font-bold text-white mb-4 tracking-wider">
-              UPCOMING EVENTS
-            </h1>
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold mb-2">EVENT MANAGEMENT</h1>
+            </div>
+
+            
             <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto mb-6"></div>
             <p className="text-gray-400 text-lg max-w-2xl mx-auto font-roboto">
               Discover amazing music events, concerts, and performances
@@ -205,36 +221,34 @@ const EventsPage = () => {
               />
             </div>
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full md:w-48 bg-gray-900/50 border-gray-700 text-white h-12 font-roboto">
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-900 border-gray-700">
-                <SelectItem value="all">All Events</SelectItem>
-                <SelectItem value="concert">Concerts</SelectItem>
-                <SelectItem value="dj-set">DJ Sets</SelectItem>
-                <SelectItem value="festival">Festivals</SelectItem>
-                <SelectItem value="party">Parties</SelectItem>
-              </SelectContent>
+              <SelectItem value="all">All Events</SelectItem>
+              <SelectItem value="concert">Concerts</SelectItem>
+              <SelectItem value="dj-set">DJ Sets</SelectItem>
+              <SelectItem value="festival">Festivals</SelectItem>
+              <SelectItem value="party">Parties</SelectItem>
             </Select>
-            {user && (
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 h-12 px-6 font-oswald font-semibold tracking-wide">
-                    <Plus className="w-5 h-5 mr-2" />
-                    CREATE EVENT
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle className="text-white font-oswald text-2xl">CREATE NEW EVENT</DialogTitle>
-                  </DialogHeader>
-                  <EventForm onSubmit={handleCreateEvent} />
-                </DialogContent>
-              </Dialog>
-            )}
+            <Button 
+              onClick={() => setIsCreateModalOpen(true)}
+              className="neon-button"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Event
+            </Button>
           </motion.div>
         </div>
       </div>
+
+      {/* Create Event Dialog */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white font-oswald text-2xl">CREATE NEW EVENT</DialogTitle>
+          </DialogHeader>
+          <EventForm onSubmit={handleCreateEvent} />
+        </DialogContent>
+      </Dialog>
 
       {/* Events Table */}
       <div className="container mx-auto px-4 py-16">
@@ -271,9 +285,39 @@ const EventsPage = () => {
                       transition={{ duration: 0.3, delay: index * 0.1 }}
                       className="group hover:bg-gray-800/50 transition-all duration-300"
                     >
-                      <div className="flex items-center px-6 py-6">
-                        {/* Date Column */}
-                        <div className="flex-shrink-0 w-20 text-center">
+                      <div className="flex flex-col md:flex-row md:items-center px-4 md:px-6 py-6 gap-4 md:gap-0">
+                        {/* Mobile: Event Header */}
+                        <div className="flex items-start gap-4 md:hidden">
+                          {/* Date Column - Mobile */}
+                          <div className="flex-shrink-0">
+                            <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg p-3 text-white">
+                              <div className="font-oswald text-xl font-bold leading-none">
+                                {dateInfo.day}
+                              </div>
+                              <div className="font-oswald text-xs font-medium mt-1 opacity-90">
+                                {dateInfo.month}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Event Title and Badge - Mobile */}
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-2">
+                              <h3 className="font-oswald text-lg font-bold text-white tracking-wide group-hover:text-purple-400 transition-colors">
+                                {event.title || event.name}
+                              </h3>
+                              <Badge 
+                                variant="outline" 
+                                className="bg-purple-600/20 border-purple-500/50 text-purple-300 font-oswald font-medium tracking-wide text-xs ml-2"
+                              >
+                                {event.eventType?.toUpperCase() || 'EVENT'}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Desktop: Date Column */}
+                        <div className="hidden md:flex flex-shrink-0 w-20 text-center">
                           <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg p-3 text-white">
                             <div className="font-oswald text-2xl font-bold leading-none">
                               {dateInfo.day}
@@ -285,8 +329,9 @@ const EventsPage = () => {
                         </div>
 
                         {/* Event Info Column */}
-                        <div className="flex-1 ml-6">
-                          <div className="flex items-start justify-between">
+                        <div className="flex-1 md:ml-6">
+                          {/* Desktop Title */}
+                          <div className="hidden md:flex items-start justify-between">
                             <div className="flex-1">
                               <h3 className="font-oswald text-xl font-bold text-white mb-1 tracking-wide group-hover:text-purple-400 transition-colors">
                                 {event.title || event.name}
@@ -312,27 +357,94 @@ const EventsPage = () => {
                               </div>
                             </div>
 
-                            {/* Event Type Badge */}
-                            <div className="ml-4">
-                              <Badge 
-                                variant="outline" 
-                                className="bg-purple-600/20 border-purple-500/50 text-purple-300 font-oswald font-medium tracking-wide"
-                              >
-                                {event.eventType?.toUpperCase() || 'EVENT'}
-                              </Badge>
+                            
+                          </div>
+
+                          {/* Mobile Description and Details */}
+                          <div className="md:hidden">
+                            <p className="text-gray-400 font-roboto text-sm mb-3 line-clamp-2">
+                              {event.description}
+                            </p>
+                            <div className="grid grid-cols-1 gap-2 text-sm text-gray-300 mb-4">
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                                <span className="font-roboto">{event.venue?.name || 'TBD'}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                                <span className="font-roboto">{formatTime(event.startDate)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                                <span className="font-roboto">
+                                  {event.participantCount || 0}/{event.maxParticipants || '∞'} participants
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
 
-                        {/* Price Column */}
-                        <div className="flex-shrink-0 w-24 text-center ml-6">
+                        {/* Desktop Event Type Badge */}
+                        <div className="ml-4">
+                          <Badge 
+                            variant="outline" 
+                            className="bg-purple-600/20 border-purple-500/50 text-purple-300 font-oswald font-medium tracking-wide"
+                          >
+                            {event.eventType?.toUpperCase() || 'EVENT'}
+                          </Badge>
+                        </div>
+
+                        {/* Mobile: Price and Actions */}
+                        <div className="flex items-center justify-between md:hidden">
+                          <div className="flex items-center gap-2">
+                            {user && (
+                              <Button
+                                size="sm"
+                                onClick={() => isJoined ? handleLeaveEvent(event.id) : handleJoinEvent(event.id)}
+                                className={`font-oswald font-semibold tracking-wide px-4 py-2 ${
+                                  isJoined 
+                                    ? 'bg-gray-600 hover:bg-gray-700 text-white' 
+                                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white'
+                                }`}
+                              >
+                                {isJoined ? 'JOINED' : 'JOIN'}
+                              </Button>
+                            )}
+                            {user?.role === 'manager' && (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setSelectedEvent(event)
+                                    setIsEditModalOpen(true)
+                                  }}
+                                  className="text-gray-400 hover:text-white hover:bg-gray-700 p-2"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteEvent(event.id)}
+                                  className="text-gray-400 hover:text-red-400 hover:bg-gray-700 p-2"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Desktop: Price Column */}
+                        <div className="hidden md:flex flex-shrink-0 w-24 text-center ml-6">
                           <div className="font-oswald text-lg font-bold text-white">
                             FREE
                           </div>
                         </div>
 
-                        {/* Action Column */}
-                        <div className="flex-shrink-0 w-32 text-right ml-6">
+                        {/* Desktop: Action Column */}
+                        <div className="hidden md:flex flex-shrink-0 w-32 text-right ml-6">
                           <div className="flex items-center justify-end gap-2">
                             {user && (
                               <Button
@@ -354,7 +466,7 @@ const EventsPage = () => {
                                   variant="ghost"
                                   onClick={() => {
                                     setSelectedEvent(event)
-                                    setIsEditDialogOpen(true)
+                                    setIsEditModalOpen(true)
                                   }}
                                   className="text-gray-400 hover:text-white hover:bg-gray-700"
                                 >
@@ -395,7 +507,7 @@ const EventsPage = () => {
       </div>
 
       {/* Edit Event Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="bg-gray-900 border-gray-700 max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-white font-oswald text-2xl">EDIT EVENT</DialogTitle>
@@ -412,25 +524,51 @@ const EventsPage = () => {
   )
 }
 
-// Event Form Component
+// Event Form Component with proper DialogFooter
 const EventForm = ({ initialData, onSubmit }) => {
   const [formData, setFormData] = useState({
-    title: initialData?.title || initialData?.name || '',
+    name: initialData?.name || '',
     description: initialData?.description || '',
+    startTime: initialData?.startTime ? new Date(initialData.startTime).toISOString().slice(0, 16) : '',
+    endTime: initialData?.endTime ? new Date(initialData.endTime).toISOString().slice(0, 16) : '',
     startDate: initialData?.startDate ? new Date(initialData.startDate).toISOString().slice(0, 16) : '',
     endDate: initialData?.endDate ? new Date(initialData.endDate).toISOString().slice(0, 16) : '',
-    venue: initialData?.venue?.name || '',
-    eventType: initialData?.eventType || 'concert',
+    location: initialData?.location || '',
     maxParticipants: initialData?.maxParticipants || 100,
+    isPublic: initialData?.isPublic ?? true,
+    allowSongRequests: initialData?.allowSongRequests ?? true,
+    timeBombEnabled: initialData?.timeBombEnabled ?? false,
+    timeBombDuration: initialData?.timeBombDuration || 30,
+    Venue: initialData?.Venue || '',
+    'venue.name': initialData?.['venue.name'] || '',
+    'venue.address': initialData?.['venue.address'] || '',
+    'venue.city': initialData?.['venue.city'] || '',
+    eventType: initialData?.eventType || 'Private',
   })
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSubmit({
-      ...formData,
+    // Submit data with exact field structure
+    const submitData = {
+      name: formData.name,
+      description: formData.description,
+      startTime: new Date(formData.startTime).toISOString(),
+      endTime: new Date(formData.endTime).toISOString(),
       startDate: new Date(formData.startDate).toISOString(),
       endDate: new Date(formData.endDate).toISOString(),
-    })
+      location: formData.location,
+      maxParticipants: formData.maxParticipants,
+      isPublic: formData.isPublic,
+      allowSongRequests: formData.allowSongRequests,
+      timeBombEnabled: formData.timeBombEnabled,
+      timeBombDuration: formData.timeBombDuration,
+      Venue: formData.Venue,
+      'venue.name': formData['venue.name'],
+      'venue.address': formData['venue.address'],
+      'venue.city': formData['venue.city'],
+      eventType: formData.eventType
+    }
+    onSubmit(submitData)
   }
 
   const handleChange = (field, value) => {
@@ -441,27 +579,26 @@ const EventForm = ({ initialData, onSubmit }) => {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="title" className="text-white font-roboto">Event Title</Label>
+          <Label htmlFor="name" className="text-white font-roboto">Event Name</Label>
           <Input
-            id="title"
-            value={formData.title}
-            onChange={(e) => handleChange('title', e.target.value)}
+            id="name"
+            value={formData.name}
+            onChange={(e) => handleChange('name', e.target.value)}
             className="bg-gray-800 border-gray-600 text-white font-roboto"
             required
           />
         </div>
         <div>
           <Label htmlFor="eventType" className="text-white font-roboto">Event Type</Label>
-          <Select value={formData.eventType} onValueChange={(value) => handleChange('eventType', value)}>
-            <SelectTrigger className="bg-gray-800 border-gray-600 text-white font-roboto">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-600">
-              <SelectItem value="concert">Concert</SelectItem>
-              <SelectItem value="dj-set">DJ Set</SelectItem>
-              <SelectItem value="festival">Festival</SelectItem>
-              <SelectItem value="party">Party</SelectItem>
-            </SelectContent>
+          <Select value={formData.eventType} onValueChange={(value) => setFormData({...formData, eventType: value})}>
+            <SelectItem value="">Select Event Type</SelectItem>
+            <SelectItem value="Wedding">Wedding</SelectItem>
+            <SelectItem value="Birthday">Birthday</SelectItem>
+            <SelectItem value="Corporate">Corporate</SelectItem>
+            <SelectItem value="Club">Club</SelectItem>
+            <SelectItem value="Festival">Festival</SelectItem>
+            <SelectItem value="Private">Private</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
           </Select>
         </div>
       </div>
@@ -479,7 +616,31 @@ const EventForm = ({ initialData, onSubmit }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="startDate" className="text-white font-roboto">Start Date & Time</Label>
+          <Label htmlFor="startTime" className="text-white font-roboto">Start Time</Label>
+          <Input
+            id="startTime"
+            type="datetime-local"
+            value={formData.startTime}
+            onChange={(e) => handleChange('startTime', e.target.value)}
+            className="bg-gray-800 border-gray-600 text-white font-roboto"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="endTime" className="text-white font-roboto">End Time</Label>
+          <Input
+            id="endTime"
+            type="datetime-local"
+            value={formData.endTime}
+            onChange={(e) => handleChange('endTime', e.target.value)}
+            className="bg-gray-800 border-gray-600 text-white font-roboto"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="startDate" className="text-white font-roboto">Start Date</Label>
           <Input
             id="startDate"
             type="datetime-local"
@@ -490,7 +651,7 @@ const EventForm = ({ initialData, onSubmit }) => {
           />
         </div>
         <div>
-          <Label htmlFor="endDate" className="text-white font-roboto">End Date & Time</Label>
+          <Label htmlFor="endDate" className="text-white font-roboto">End Date</Label>
           <Input
             id="endDate"
             type="datetime-local"
@@ -503,11 +664,11 @@ const EventForm = ({ initialData, onSubmit }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="venue" className="text-white font-roboto">Venue</Label>
+          <Label htmlFor="location" className="text-white font-roboto">Location</Label>
           <Input
-            id="venue"
-            value={formData.venue}
-            onChange={(e) => handleChange('venue', e.target.value)}
+            id="location"
+            value={formData.location}
+            onChange={(e) => handleChange('location', e.target.value)}
             className="bg-gray-800 border-gray-600 text-white font-roboto"
           />
         </div>
@@ -524,22 +685,104 @@ const EventForm = ({ initialData, onSubmit }) => {
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 pt-4">
-        <Button 
-          type="button" 
-          variant="outline" 
-          className="border-gray-600 text-gray-300 hover:bg-gray-700 font-roboto"
-          onClick={() => window.history.back()}
-        >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <Label htmlFor="Venue" className="text-white font-roboto">Venue</Label>
+          <Input
+            id="Venue"
+            value={formData.Venue}
+            onChange={(e) => handleChange('Venue', e.target.value)}
+            className="bg-gray-800 border-gray-600 text-white font-roboto"
+          />
+        </div>
+        <div>
+          <Label htmlFor="venue.name" className="text-white font-roboto">Venue Name</Label>
+          <Input
+            id="venue.name"
+            value={formData['venue.name']}
+            onChange={(e) => handleChange('venue.name', e.target.value)}
+            className="bg-gray-800 border-gray-600 text-white font-roboto"
+          />
+        </div>
+        <div>
+          <Label htmlFor="venue.city" className="text-white font-roboto">Venue City</Label>
+          <Input
+            id="venue.city"
+            value={formData['venue.city']}
+            onChange={(e) => handleChange('venue.city', e.target.value)}
+            className="bg-gray-800 border-gray-600 text-white font-roboto"
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="venue.address" className="text-white font-roboto">Venue Address</Label>
+        <Input
+          id="venue.address"
+          value={formData['venue.address']}
+          onChange={(e) => handleChange('venue.address', e.target.value)}
+          className="bg-gray-800 border-gray-600 text-white font-roboto"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="isPublic"
+            checked={formData.isPublic}
+            onChange={(e) => handleChange('isPublic', e.target.checked)}
+            className="rounded border-gray-600 bg-gray-800"
+          />
+          <Label htmlFor="isPublic" className="text-white font-roboto">Public Event</Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="allowSongRequests"
+            checked={formData.allowSongRequests}
+            onChange={(e) => handleChange('allowSongRequests', e.target.checked)}
+            className="rounded border-gray-600 bg-gray-800"
+          />
+          <Label htmlFor="allowSongRequests" className="text-white font-roboto">Allow Song Requests</Label>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="timeBombEnabled"
+            checked={formData.timeBombEnabled}
+            onChange={(e) => handleChange('timeBombEnabled', e.target.checked)}
+            className="rounded border-gray-600 bg-gray-800"
+          />
+          <Label htmlFor="timeBombEnabled" className="text-white font-roboto">Enable TimeBomb</Label>
+        </div>
+        {formData.timeBombEnabled && (
+          <div>
+            <Label htmlFor="timeBombDuration" className="text-white font-roboto">TimeBomb Duration (minutes)</Label>
+            <Input
+              id="timeBombDuration"
+              type="number"
+              value={formData.timeBombDuration}
+              onChange={(e) => handleChange('timeBombDuration', parseInt(e.target.value))}
+              className="bg-gray-800 border-gray-600 text-white font-roboto"
+              min="5"
+              max="180"
+            />
+          </div>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={() => setIsCreateModalOpen(false)}>
           Cancel
         </Button>
-        <Button 
-          type="submit" 
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 font-oswald font-semibold tracking-wide"
-        >
-          {initialData ? 'UPDATE EVENT' : 'CREATE EVENT'}
+        <Button type="submit" className="neon-button">
+          Create Event
         </Button>
-      </div>
+      </DialogFooter>
     </form>
   )
 }

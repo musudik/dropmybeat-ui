@@ -121,21 +121,19 @@ const MobileNav = () => {
             >
               <div className="flex flex-col h-full">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-border">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 flex items-center justify-center">
-                      <Music className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="font-semibold text-lg">DropMyBeat</h2>
-                      <p className="text-sm text-muted-foreground">{user?.name}</p>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between p-4 border-b border-border">
+                  <Link to="/dashboard" className="flex items-center">
+                    <img 
+                      src="/src/assets/DropMyBeats.gif" 
+                      alt="DropMyBeats Logo" 
+                      className="h-8 w-auto"
+                    />
+                  </Link>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsOpen(false)}
-                    className="p-2"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-5 w-5" />
                   </Button>
