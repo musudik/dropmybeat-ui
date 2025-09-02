@@ -1,7 +1,8 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app'
+// Use '/api' to leverage Vite's proxy in development
+const API_BASE_URL = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app')
 
 // Create axios instance
 export const api = axios.create({
@@ -73,6 +74,28 @@ export const eventAPI = {
   delete: (id) => api.delete(`/events/${id}`),
   join: (id) => api.post(`/events/${id}/join`),
   leave: (id) => api.post(`/events/${id}/leave`),
+  activate: (id) => api.put(`/events/${id}/activate`),
+  deactivate: (id) => api.put(`/events/${id}/deactivate`),
+  joinPublic: (id, userData) => {
+    // Create a separate axios instance without auth interceptor for public join
+    const publicApi = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    return publicApi.post(`/events/${id}/join-guest`, userData)
+  },
+  getPublic: (id) => {
+    // Create a separate axios instance without auth interceptor for public access
+    const publicApi = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    return publicApi.get(`/events/${id}`)
+  },
 }
 
 // Song Request API

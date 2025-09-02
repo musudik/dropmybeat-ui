@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, MapPin, Clock, Users, Music, Plus, Edit, Trash2, Search } from 'lucide-react'
+import { Calendar, MapPin, Clock, Users, Music, Plus, Edit, Trash2, Search, QrCode, Copy, X, Power } from 'lucide-react'
+import QRCode from 'react-qr-code'
 import { Button } from '../components/ui/button'
-import { Badge } from '../components/ui/badge'
+import { Badge, Badge1 } from '../components/ui/badge'
 import { Input } from '../components/ui/input'
 import { Select, SelectItem } from '../components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../components/ui/dialog'
@@ -22,6 +23,8 @@ const EventsPage = () => {
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [joinedEvents, setJoinedEvents] = useState(new Set())
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false)
+  const [qrEvent, setQrEvent] = useState(null)
 
   useEffect(() => {
     fetchEvents()
@@ -49,13 +52,52 @@ const EventsPage = () => {
     }
   }
 
+  // Add handler functions for activate/deactivate
+  const handleActivateEvent = async (eventId) => {
+    try {
+      await eventAPI.activate(eventId)
+      toast.success('Event activated successfully!')
+      fetchEvents() // Refresh the events list
+    } catch (error) {
+      console.error('Error activating event:', error)
+      toast.error(error.response?.data?.message || 'Failed to activate event')
+    }
+  }
+
+  const handleDeactivateEvent = async (eventId) => {
+    try {
+      await eventAPI.deactivate(eventId)
+      toast.success('Event deactivated successfully!')
+      fetchEvents() // Refresh the events list
+    } catch (error) {
+      console.error('Error deactivating event:', error)
+      toast.error(error.response?.data?.message || 'Failed to deactivate event')
+    }
+  }
+
+  // Helper function to determine if event can be activated
+  const canActivateEvent = (event) => {
+    const status = event.status?.toLowerCase()
+    return status !== 'active' && status !== 'completed' && status !== 'cancelled'
+  }
+
+  // Helper function to determine if event can be deactivated
+  const canDeactivateEvent = (event) => {
+    const status = event.status?.toLowerCase()
+    return status === 'active'
+  }
+
   const handleJoinEvent = async (eventId) => {
     try {
       await eventAPI.join(eventId)
       setJoinedEvents(prev => new Set([...prev, eventId]))
       setEvents(prev => prev.map(event => 
         event.id === eventId 
-          ? { ...event, participantCount: (event.participantCount || 0) + 1 }
+          ? { 
+              ...event, 
+              participantCount: (event.participantCount || 0) + 1,
+              totalParticipantCount: (event.totalParticipantCount || 0) + 1
+            }
           : event
       ))
       toast.success('Successfully joined the event!')
@@ -75,7 +117,11 @@ const EventsPage = () => {
       })
       setEvents(prev => prev.map(event => 
         event.id === eventId 
-          ? { ...event, participantCount: Math.max((event.participantCount || 1) - 1, 0) }
+          ? { 
+              ...event, 
+              participantCount: Math.max((event.participantCount || 1) - 1, 0),
+              totalParticipantCount: Math.max((event.totalParticipantCount || 1) - 1, 0)
+            }
           : event
       ))
       toast.success('Left the event successfully')
@@ -83,6 +129,35 @@ const EventsPage = () => {
       console.error('Error leaving event:', error)
       toast.error(error.response?.data?.message || 'Failed to leave event')
     }
+  }
+
+  const handleUpdateEventStatus = async (eventId, newStatus) => {
+    try {
+      await eventAPI.update(eventId, { status: newStatus })
+      toast.success(`Event status updated to ${newStatus}!`)
+      setIsEditModalOpen(false)
+      fetchEvents()
+    } catch (error) {
+      console.error('Error updating event status:', error)
+      toast.error(error.response?.data?.message || 'Failed to update event status')
+    }
+  }
+
+  const closePopup = () => {
+    setIsCreateModalOpen(false)
+    setIsEditModalOpen(false)
+    setSelectedEvent(null)
+  }
+
+  const handleShowQR = (event) => {
+    setQrEvent(event)
+    setIsQRModalOpen(true)
+  }
+
+  const handleCopyJoinLink = (eventId) => {
+    const joinLink = `${window.location.origin}/join/${eventId}`
+    navigator.clipboard.writeText(joinLink)
+    toast.success('Join link copied to clipboard!')
   }
 
   const handleCreateEvent = async (eventData) => {
@@ -222,10 +297,13 @@ const EventsPage = () => {
             </div>
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectItem value="all">All Events</SelectItem>
-              <SelectItem value="concert">Concerts</SelectItem>
-              <SelectItem value="dj-set">DJ Sets</SelectItem>
-              <SelectItem value="festival">Festivals</SelectItem>
-              <SelectItem value="party">Parties</SelectItem>
+              <SelectItem value="Wedding">Wedding</SelectItem>
+              <SelectItem value="Birthday">Birthday</SelectItem>
+              <SelectItem value="Corporate">Corporate</SelectItem>
+              <SelectItem value="Club">Club</SelectItem>
+              <SelectItem value="Festival">Festival</SelectItem>
+              <SelectItem value="Private">Private</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
             </Select>
             <Button 
               onClick={() => setIsCreateModalOpen(true)}
@@ -246,7 +324,10 @@ const EventsPage = () => {
           <DialogHeader>
             <DialogTitle className="text-white font-oswald text-2xl">CREATE NEW EVENT</DialogTitle>
           </DialogHeader>
-          <EventForm onSubmit={handleCreateEvent} />
+          <EventForm 
+            onSubmit={handleCreateEvent} 
+            closePopup={closePopup}
+          />
         </DialogContent>
       </Dialog>
 
@@ -306,12 +387,12 @@ const EventsPage = () => {
                               <h3 className="font-oswald text-lg font-bold text-white tracking-wide group-hover:text-purple-400 transition-colors">
                                 {event.title || event.name}
                               </h3>
-                              <Badge 
+                              <Badge1 
                                 variant="outline" 
                                 className="bg-purple-600/20 border-purple-500/50 text-purple-300 font-oswald font-medium tracking-wide text-xs ml-2"
                               >
                                 {event.eventType?.toUpperCase() || 'EVENT'}
-                              </Badge>
+                              </Badge1>
                             </div>
                           </div>
                         </div>
@@ -333,9 +414,17 @@ const EventsPage = () => {
                           {/* Desktop Title */}
                           <div className="hidden md:flex items-start justify-between">
                             <div className="flex-1">
-                              <h3 className="font-oswald text-xl font-bold text-white mb-1 tracking-wide group-hover:text-purple-400 transition-colors">
-                                {event.title || event.name}
-                              </h3>
+                                  <Badge variant="outline" 
+                                        > <h2 className="font-oswald text-3xl font-bold text-white tracking-wide group-hover:text-purple-400 transition-colors">
+                                          {event.title || event.name}
+                                        </h2>
+                                  </Badge>
+                                  &nbsp;
+                                  <Badge1 variant="neon" className="bg-blue-600/20 border-blue-500/50 text-blue-300 font-oswald font-medium tracking-wide text-xs">
+                                    <h5 className="font-oswald text-xl font-bold text-white  tracking-wide group-hover:text-purple-400 transition-colors">
+                                      {event.eventType?.toUpperCase() || 'EVENT'}
+                                    </h5>
+                                  </Badge1>
                               <p className="text-gray-400 font-roboto text-sm mb-2 line-clamp-2">
                                 {event.description}
                               </p>
@@ -351,7 +440,10 @@ const EventsPage = () => {
                                 <div className="flex items-center gap-1">
                                   <Users className="w-4 h-4 text-purple-400" />
                                   <span className="font-roboto">
-                                    {event.participantCount || 0}/{event.maxParticipants || '∞'}
+                                    {event.totalParticipantCount || 0}/{event.maxParticipants || '∞'}
+                                    <span className="text-xs text-gray-400 ml-1">
+                                      ({event.participantCount || 0} + {event.guestParticipantCount || 0} guests)
+                                    </span>
                                   </span>
                                 </div>
                               </div>
@@ -377,21 +469,14 @@ const EventsPage = () => {
                               <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4 text-purple-400 flex-shrink-0" />
                                 <span className="font-roboto">
-                                  {event.participantCount || 0}/{event.maxParticipants || '∞'} participants
+                                  {event.totalParticipantCount || 0}/{event.maxParticipants || '∞'} participants
+                                  <span className="text-xs text-gray-400 block">
+                                    {event.participantCount || 0} registered + {event.guestParticipantCount || 0} guests
+                                  </span>
                                 </span>
                               </div>
                             </div>
                           </div>
-                        </div>
-
-                        {/* Desktop Event Type Badge */}
-                        <div className="ml-4">
-                          <Badge 
-                            variant="outline" 
-                            className="bg-purple-600/20 border-purple-500/50 text-purple-300 font-oswald font-medium tracking-wide"
-                          >
-                            {event.eventType?.toUpperCase() || 'EVENT'}
-                          </Badge>
                         </div>
 
                         {/* Mobile: Price and Actions */}
@@ -410,8 +495,39 @@ const EventsPage = () => {
                                 {isJoined ? 'JOINED' : 'JOIN'}
                               </Button>
                             )}
-                            {user?.role === 'manager' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleShowQR(event)}
+                              className="text-gray-400 hover:text-white hover:bg-gray-700 p-2"
+                              title="Share Event"
+                            >
+                              <QrCode className="w-4 h-4" />
+                            </Button>
+                            {user?.role === 'Admin' && (
                               <div className="flex gap-1">
+                                {canActivateEvent(event) && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleActivateEvent(event.id)}
+                                    className="text-gray-400 hover:text-green-400 hover:bg-gray-700 p-2"
+                                    title="Activate Event"
+                                  >
+                                    <Power className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                {canDeactivateEvent(event) && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDeactivateEvent(event.id)}
+                                    className="text-gray-400 hover:text-orange-400 hover:bg-gray-700 p-2"
+                                    title="Deactivate Event"
+                                  >
+                                    <Power className="w-4 h-4" />
+                                  </Button>
+                                )}
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -439,12 +555,12 @@ const EventsPage = () => {
                         {/* Desktop: Price Column */}
                         <div className="hidden md:flex flex-shrink-0 w-24 text-center ml-6">
                           <div className="font-oswald text-lg font-bold text-white">
-                            FREE
+                             {event.status?.toUpperCase() || 'PUBLISHED'}
                           </div>
                         </div>
 
                         {/* Desktop: Action Column */}
-                        <div className="hidden md:flex flex-shrink-0 w-32 text-right ml-6">
+                        <div className="hidden md:flex flex-shrink-0 w-45 text-right ml-6">
                           <div className="flex items-center justify-end gap-2">
                             {user && (
                               <Button
@@ -459,8 +575,39 @@ const EventsPage = () => {
                                 {isJoined ? 'JOINED' : 'JOIN'}
                               </Button>
                             )}
-                            {user?.role === 'manager' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleShowQR(event)}
+                              className="text-gray-400 hover:text-white hover:bg-gray-700"
+                              title="Share Event"
+                            >
+                              <QrCode className="w-4 h-4" />
+                            </Button>
+                            {user?.role === 'Admin' && (
                               <div className="flex gap-1">
+                                {canActivateEvent(event) && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleActivateEvent(event.id)}
+                                    className="text-gray-400 hover:text-green-400 hover:bg-gray-700"
+                                    title="Activate Event"
+                                  >
+                                    <Power className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                {canDeactivateEvent(event) && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDeactivateEvent(event.id)}
+                                    className="text-gray-400 hover:text-orange-400 hover:bg-gray-700"
+                                    title="Deactivate Event"
+                                  >
+                                    <Power className="w-4 h-4" />
+                                  </Button>
+                                )}
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -515,9 +662,79 @@ const EventsPage = () => {
           {selectedEvent && (
             <EventForm 
               initialData={selectedEvent} 
-              onSubmit={handleUpdateEvent} 
+              onSubmit={handleUpdateEvent}
+              closePopup={closePopup}
+              handleUpdateEventStatus={handleUpdateEventStatus}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Modal */}
+      <Dialog open={isQRModalOpen} onOpenChange={setIsQRModalOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-md">
+          <DialogHeader>
+            <div className="text-center">
+              <h2 className="font-oswald text-xl font-bold text-pink-400 mb-2">
+                SHARE EVENT
+              </h2>
+              <h3 className="font-oswald text-lg font-semibold text-white mb-2">
+                {qrEvent?.title || qrEvent?.name || 'EVENT NAME'}
+              </h3>
+              <p className="text-gray-400 text-sm">
+                Scan QR code or share the link to join this event
+              </p>
+            </div>
+          </DialogHeader>
+          
+          {qrEvent && (
+            <div className="space-y-6">
+              <div className="flex justify-center">
+                <div className="bg-white p-6 rounded-lg">
+                  <QRCode
+                    value={`${window.location.origin}/join/${qrEvent.id}`}
+                    size={200}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    viewBox={`0 0 200 200`}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 p-3 bg-gray-800 rounded-lg border border-gray-600">
+                  <input 
+                    type="text" 
+                    value={`${window.location.origin}/join/${qrEvent.id}`}
+                    readOnly
+                    className="flex-1 bg-transparent text-sm text-gray-300 outline-none font-mono"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleCopyJoinLink(qrEvent.id)}
+                    className="text-gray-400 hover:text-white hover:bg-gray-700 p-2"
+                    title="Copy Link"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                
+                <div className="text-center text-xs text-gray-500">
+                  Anyone with this link can join the event with their email and name
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setIsQRModalOpen(false)}
+              className="w-full font-oswald font-semibold tracking-wide bg-transparent border-gray-600 text-white hover:bg-gray-800"
+            >
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -525,7 +742,7 @@ const EventsPage = () => {
 }
 
 // Event Form Component with proper DialogFooter
-const EventForm = ({ initialData, onSubmit }) => {
+const EventForm = ({ initialData, onSubmit, closePopup, handleUpdateEventStatus }) => {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     description: initialData?.description || '',
@@ -534,17 +751,43 @@ const EventForm = ({ initialData, onSubmit }) => {
     startDate: initialData?.startDate ? new Date(initialData.startDate).toISOString().slice(0, 16) : '',
     endDate: initialData?.endDate ? new Date(initialData.endDate).toISOString().slice(0, 16) : '',
     location: initialData?.location || '',
-    maxParticipants: initialData?.maxParticipants || 100,
+    maxParticipants: initialData?.maxParticipants || 500,
     isPublic: initialData?.isPublic ?? true,
     allowSongRequests: initialData?.allowSongRequests ?? true,
     timeBombEnabled: initialData?.timeBombEnabled ?? false,
-    timeBombDuration: initialData?.timeBombDuration || 30,
+    timeBombDuration: initialData?.timeBombDuration || 120,
     Venue: initialData?.Venue || '',
     'venue.name': initialData?.['venue.name'] || '',
     'venue.address': initialData?.['venue.address'] || '',
     'venue.city': initialData?.['venue.city'] || '',
-    eventType: initialData?.eventType || 'Private',
+    eventType: initialData?.eventType || 'Festival',
   })
+
+  const getNextStatus = (currentStatus) => {
+    switch (currentStatus?.toLowerCase()) {
+      case 'draft':
+        return 'Published'
+      case 'published':
+        return 'Active'
+      case 'active':
+        return 'Completed'
+      default:
+        return 'Published'
+    }
+  }
+
+  const getStatusButtonText = (currentStatus) => {
+    switch (currentStatus?.toLowerCase()) {
+      case 'draft':
+        return 'PUBLISH'
+      case 'published':
+        return 'ACTIVATE'
+      case 'active':
+        return 'COMPLETE'
+      default:
+        return 'PUBLISH'
+    }
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -591,7 +834,6 @@ const EventForm = ({ initialData, onSubmit }) => {
         <div>
           <Label htmlFor="eventType" className="text-white font-roboto">Event Type</Label>
           <Select value={formData.eventType} onValueChange={(value) => setFormData({...formData, eventType: value})}>
-            <SelectItem value="">Select Event Type</SelectItem>
             <SelectItem value="Wedding">Wedding</SelectItem>
             <SelectItem value="Birthday">Birthday</SelectItem>
             <SelectItem value="Corporate">Corporate</SelectItem>
@@ -687,27 +929,27 @@ const EventForm = ({ initialData, onSubmit }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <Label htmlFor="Venue" className="text-white font-roboto">Venue</Label>
+          <Label htmlFor="venue" className="text-white font-roboto">Venue</Label>
           <Input
-            id="Venue"
+            id="venue"
             value={formData.Venue}
             onChange={(e) => handleChange('Venue', e.target.value)}
             className="bg-gray-800 border-gray-600 text-white font-roboto"
           />
         </div>
         <div>
-          <Label htmlFor="venue.name" className="text-white font-roboto">Venue Name</Label>
+          <Label htmlFor="venueName" className="text-white font-roboto">Venue Name</Label>
           <Input
-            id="venue.name"
+            id="venueName"
             value={formData['venue.name']}
             onChange={(e) => handleChange('venue.name', e.target.value)}
             className="bg-gray-800 border-gray-600 text-white font-roboto"
           />
         </div>
         <div>
-          <Label htmlFor="venue.city" className="text-white font-roboto">Venue City</Label>
+          <Label htmlFor="venueCity" className="text-white font-roboto">Venue City</Label>
           <Input
-            id="venue.city"
+            id="venueCity"
             value={formData['venue.city']}
             onChange={(e) => handleChange('venue.city', e.target.value)}
             className="bg-gray-800 border-gray-600 text-white font-roboto"
@@ -716,9 +958,9 @@ const EventForm = ({ initialData, onSubmit }) => {
       </div>
 
       <div>
-        <Label htmlFor="venue.address" className="text-white font-roboto">Venue Address</Label>
+        <Label htmlFor="venueAddress" className="text-white font-roboto">Venue Address</Label>
         <Input
-          id="venue.address"
+          id="venueAddress"
           value={formData['venue.address']}
           onChange={(e) => handleChange('venue.address', e.target.value)}
           className="bg-gray-800 border-gray-600 text-white font-roboto"
@@ -776,12 +1018,34 @@ const EventForm = ({ initialData, onSubmit }) => {
       </div>
 
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={() => setIsCreateModalOpen(false)}>
-          Cancel
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={closePopup}
+          className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white font-oswald font-semibold tracking-wide"
+        >
+          CANCEL
         </Button>
-        <Button type="submit" className="neon-button">
-          Create Event
-        </Button>
+        
+        {initialData ? (
+          <Button 
+            type="button"
+            onClick={() => {
+              const nextStatus = getNextStatus(initialData.status)
+              handleUpdateEventStatus(initialData.id, nextStatus)
+            }}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-oswald font-semibold tracking-wide"
+          >
+            {getStatusButtonText(initialData.status)}
+          </Button>
+        ) : (
+          <Button 
+            type="submit" 
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-oswald font-semibold tracking-wide"
+          >
+            CREATE EVENT
+          </Button>
+        )}
       </DialogFooter>
     </form>
   )
