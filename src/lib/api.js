@@ -15,10 +15,26 @@ export const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
+    // Add auth token if available
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+// Add request cache
+const requestCache = new Map()
+const CACHE_DURATION = 30000 // 30 seconds
+
+// Add caching interceptor
+api.interceptors.request.use(
+  (config) => {
+    // Temporarily disable caching to fix adapter issue
+    // TODO: Re-implement caching with proper adapter handling
     return config
   },
   (error) => {
@@ -50,10 +66,36 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   login: (credentials) => api.post('/auth/login', credentials),
+  guestLogin: (guestData) => api.post('/auth/guest-login', guestData),
   getCurrentUser: () => api.get('/auth/me'),
-  updateProfile: (profileData) => api.put('/auth/updateprofile', profileData),
-  changePassword: (passwordData) => api.put('/auth/changepassword', passwordData),
+  updateProfile: (profileData) => api.put('/auth/profile', profileData),
+  changePassword: (passwordData) => api.put('/auth/change-password', passwordData),
   logout: () => api.post('/auth/logout'),
+}
+
+// Role-based Dashboard APIs
+export const adminAPI = {
+  getDashboard: () => api.get('/admin/dashboard'),
+  getManagers: () => api.get('/admin/managers'),
+  getAnalytics: () => api.get('/admin/analytics'),
+}
+
+export const managerAPI = {
+  getDashboard: () => api.get('/manager/dashboard'),
+  getEvents: () => api.get('/manager/events'),
+  getEventAnalytics: (eventId) => api.get(`/manager/events/${eventId}/analytics`),
+}
+
+export const memberAPI = {
+  getDashboard: () => api.get('/member/dashboard'),
+  getEvents: () => api.get('/member/events'),
+  getSongRequests: () => api.get('/member/song-requests'),
+}
+
+export const guestAPI = {
+  getDashboard: () => api.get('/guest/dashboard'),
+  getEvents: () => api.get('/guest/events'),
+  getSongRequests: () => api.get('/guest/song-requests'),
 }
 
 // Person Management API (Admin only)
@@ -67,35 +109,39 @@ export const personAPI = {
 
 // Event Management API
 export const eventAPI = {
-  getAll: (params = {}) => api.get('/events', { params }),
+  getAll: () => api.get('/events'),
+  allEvents: () => api.get('/allEvents'),
   getById: (id) => api.get(`/events/${id}`),
   create: (eventData) => api.post('/events', eventData),
   update: (id, eventData) => api.put(`/events/${id}`, eventData),
   delete: (id) => api.delete(`/events/${id}`),
-  join: (id) => api.post(`/events/${id}/join`),
-  leave: (id) => api.post(`/events/${id}/leave`),
   activate: (id) => api.put(`/events/${id}/activate`),
   deactivate: (id) => api.put(`/events/${id}/deactivate`),
+  join: (id, userData) => api.post(`/events/${id}/join`, userData),
+  leave: (id) => api.post(`/events/${id}/leave`),
+  getMembers: (id) => api.get(`/events/${id}/Members`),
+  getGuestMembers: (id) => api.get(`/events/${id}/guest-Members`),
   joinPublic: (id, userData) => {
-    // Create a separate axios instance without auth interceptor for public join
     const publicApi = axios.create({
       baseURL: API_BASE_URL,
       headers: {
         'Content-Type': 'application/json',
       },
-    })
-    return publicApi.post(`/events/${id}/join-guest`, userData)
+    });
+    return publicApi.post(`/events/${id}/join-guest`, userData);
   },
   getPublic: (id) => {
-    // Create a separate axios instance without auth interceptor for public access
+    // Use the regular endpoint since there's no separate public endpoint yet
     const publicApi = axios.create({
       baseURL: API_BASE_URL,
       headers: {
         'Content-Type': 'application/json',
       },
-    })
-    return publicApi.get(`/events/${id}`)
+    });
+    console.log('Public API URL:', `${API_BASE_URL}/events/${id}`)
+    return publicApi.get(`/events/${id}`);
   },
+  getGuestParticipants: (id) => api.get(`/events/${id}/guest-participants`),
 }
 
 // Song Request API

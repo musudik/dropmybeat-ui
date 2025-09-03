@@ -1,10 +1,43 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
+import { Role } from '../lib/constants'
+import { useGuest } from '../contexts/GuestContext'
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth()
+  const { isGuest } = useGuest()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    console.log('User object:', user) // Add this line for debugging
+    console.log('User role:', user?.role) // Add this line for debugging
+    
+    // Redirect to role-specific dashboard
+    if (isGuest) {
+      navigate('/guest/dashboard')
+      return
+    }
+    
+    if (isAuthenticated && user) {
+      switch (user.role) {
+        case Role.ADMIN:
+          navigate('/admin/dashboard')
+          break
+        case Role.MANAGER:
+          navigate('/manager/dashboard')
+          break
+        case Role.MEMBER:
+          navigate('/member/dashboard')
+          break
+        default:
+          // Stay on general dashboard
+          break
+      }
+    }
+  }, [isAuthenticated, user, isGuest, navigate])
 
   if (!isAuthenticated || !user) {
     return (

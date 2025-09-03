@@ -88,11 +88,40 @@ const RegisterPage = () => {
             <Input
               type="email"
               placeholder="Enter your email"
+              autoComplete="email"
               {...register('email')}
               className={errors.email ? 'border-red-500' : ''}
             />
             {errors.email && (
               <p className="text-sm text-red-500">{errors.email.message}</p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Password</label>
+            <Input
+              type="password"
+              placeholder="Create a password"
+              autoComplete="new-password"
+              {...register('password')}
+              className={errors.password ? 'border-red-500' : ''}
+            />
+            {errors.password && (
+              <p className="text-sm text-red-500">{errors.password.message}</p>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Confirm Password</label>
+            <Input
+              type="password"
+              placeholder="Confirm your password"
+              autoComplete="new-password"
+              {...register('confirmPassword')}
+              className={errors.confirmPassword ? 'border-red-500' : ''}
+            />
+            {errors.confirmPassword && (
+              <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
             )}
           </div>
           

@@ -367,7 +367,10 @@ const ManagerEvents = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
-                          {event.venue}
+                          {typeof event.venue === 'object' ? 
+                            `${event.venue.name || ''} ${event.venue.address || ''} ${event.venue.city || ''} ${event.venue.state || ''} ${event.venue.zipCode || ''}`.trim() : 
+                            event.venue
+                          }
                         </div>
                         <div className="flex items-center gap-2">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -511,13 +514,8 @@ const ManagerEvents = () => {
               <div>
                 <Label htmlFor="isPublic">Visibility</Label>
                 <Select value={formData.isPublic.toString()} onValueChange={(value) => setFormData({...formData, isPublic: value === 'true'})}>
-                  <SelectTrigger>
-                    {formData.isPublic ? 'Public' : 'Private'}
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Public</SelectItem>
-                    <SelectItem value="false">Private</SelectItem>
-                  </SelectContent>
+                  <SelectItem value="true">Public</SelectItem>
+                  <SelectItem value="false">Private</SelectItem>
                 </Select>
               </div>
             </div>

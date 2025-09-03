@@ -2,7 +2,7 @@ import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
-const ProtectedRoute = ({ children, roles = [] }) => {
+const ProtectedRoute = ({ children, roles = [], requiredRole = [] }) => {
   const { isAuthenticated, user, loading } = useAuth()
   const location = useLocation()
 
@@ -18,7 +18,10 @@ const ProtectedRoute = ({ children, roles = [] }) => {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (roles.length > 0 && !roles.includes(user?.role)) {
+  // Handle both roles and requiredRole props for backward compatibility
+  const allowedRoles = roles.length > 0 ? roles : (Array.isArray(requiredRole) ? requiredRole : [requiredRole])
+  
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
     return <Navigate to="/dashboard" replace />
   }
 

@@ -7,8 +7,9 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Heart, Music, Clock, Users, MapPin, Calendar, Send, ArrowLeft, Star, ThumbsUp } from 'lucide-react'
+import { Heart, Music, Clock, Users, MapPin, Calendar, Send, ArrowLeft, Star, ThumbsUp, Search, Play, ExternalLink } from 'lucide-react'
 import { eventAPI, songRequestAPI } from '../lib/api'
+import { searchYouTube } from '../lib/youtube'
 import { useAuth } from '../contexts/AuthContext'
 import { useGuest } from '../contexts/GuestContext'
 import toast from 'react-hot-toast'
@@ -30,6 +31,15 @@ function EventDetailsPage() {
     genre: '',
     notes: ''
   })
+  const [participants, setParticipants] = useState([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // YouTube search states
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showSearchResults, setShowSearchResults] = useState(false)
+  const [selectedSong, setSelectedSong] = useState(null)
 
   // Define current user (either authenticated user or guest)
   const currentUser = user || (isGuest && guestData ? { id: guestData.sessionId, ...guestData } : null)
@@ -37,15 +47,32 @@ function EventDetailsPage() {
   useEffect(() => {
     fetchEventDetails()
     fetchSongRequests()
+    fetchParticipants()
   }, [eventId])
 
   const fetchEventDetails = async () => {
     try {
-      const response = await eventAPI.getById(eventId)
-      setEvent(response.data)
+      let response;
+      if (user) {
+        // Authenticated user - use regular API
+        response = await eventAPI.getById(eventId)
+      } else {
+        // Guest user - use public API
+        response = await eventAPI.getPublic(eventId)
+      }
+      setEvent(response.data.data || response.data)
     } catch (error) {
-      toast.error('Failed to fetch event details')
-      navigate('/events')
+      console.error('Error fetching event details:', error)
+      if (error.response?.status === 404) {
+        toast.error('Event not found')
+        navigate('/events')
+      } else if (error.response?.status === 403) {
+        toast.error('This event is not available for public viewing')
+        navigate('/events')
+      } else {
+        toast.error('Failed to fetch event details')
+        // Don't redirect on other errors, let user stay on page
+      }
     }
   }
 
@@ -53,12 +80,16 @@ function EventDetailsPage() {
     try {
       setLoading(true)
       const response = await songRequestAPI.getEventRequests(eventId)
-      const requests = response.data || []
+      // Fix: Access the nested data structure correctly
+      const requests = response.data?.data || response.data || []
       
       // Sort by likes count (descending) then by request date (ascending)
       const sortedRequests = requests.sort((a, b) => {
-        if (b.likesCount !== a.likesCount) {
-          return b.likesCount - a.likesCount
+        // Fix: Use likeCount instead of likesCount to match API response
+        const aLikes = a.likeCount || 0
+        const bLikes = b.likeCount || 0
+        if (bLikes !== aLikes) {
+          return bLikes - aLikes
         }
         return new Date(a.createdAt) - new Date(b.createdAt)
       })
@@ -69,7 +100,8 @@ function EventDetailsPage() {
       const userLikedSongs = new Set()
       if (currentUser) {
         requests.forEach(request => {
-          if (request.likedBy && request.likedBy.includes(currentUser.id)) {
+          // Fix: Use likes array instead of likedBy
+          if (request.likes && request.likes.includes(currentUser.id)) {
             userLikedSongs.add(request.id)
           }
         })
@@ -82,6 +114,72 @@ function EventDetailsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchParticipants = async () => {
+    try {
+      const response = await eventAPI.getGuestParticipants(eventId)
+      setParticipants(response.data.data || [])
+    } catch (error) {
+      console.error('Error fetching participants:', error)
+      setParticipants([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleYouTubeSearch = async () => {
+    if (!searchQuery.trim()) {
+      toast.error('Please enter a search query')
+      return
+    }
+
+    try {
+      setIsSearching(true)
+      const results = await searchYouTube(searchQuery)
+      setSearchResults(results)
+      setShowSearchResults(true)
+    } catch (error) {
+      console.error('YouTube search error:', error)
+      toast.error('Failed to search YouTube. Please try again.')
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleSelectSong = (song) => {
+    // Extract artist and title from YouTube title
+    const titleParts = song.title.split(' - ')
+    let artist = song.channelTitle
+    let title = song.title
+    
+    // If title contains ' - ', assume format is "Artist - Song Title"
+    if (titleParts.length >= 2) {
+      artist = titleParts[0].trim()
+      title = titleParts.slice(1).join(' - ').trim()
+    }
+    
+    setSongRequestForm(prev => ({
+      ...prev,
+      songTitle: title,
+      artist: artist,
+      notes: `YouTube: ${song.title} (${song.channelTitle})`
+    }))
+    
+    setSelectedSong(song)
+    setShowSearchResults(false)
+    setSearchQuery('')
+    toast.success('Song selected from YouTube!')
+  }
+
+  const clearSelectedSong = () => {
+    setSelectedSong(null)
+    setSongRequestForm(prev => ({
+      ...prev,
+      songTitle: '',
+      artist: '',
+      notes: ''
+    }))
   }
 
   const handleSongRequest = async (e) => {
@@ -137,7 +235,7 @@ function EventDetailsPage() {
         if (request.id === requestId) {
           return {
             ...request,
-            likesCount: isLiked ? request.likesCount - 1 : request.likesCount + 1
+            likeCount: isLiked ? (request.likeCount || 0) - 1 : (request.likeCount || 0) + 1
           }
         }
         return request
@@ -146,8 +244,10 @@ function EventDetailsPage() {
       // Re-sort the list after like count change
       setTimeout(() => {
         setSongRequests(prev => [...prev].sort((a, b) => {
-          if (b.likesCount !== a.likesCount) {
-            return b.likesCount - a.likesCount
+          const aLikes = a.likeCount || 0
+          const bLikes = b.likeCount || 0
+          if (bLikes !== aLikes) {
+            return bLikes - aLikes
           }
           return new Date(a.createdAt) - new Date(b.createdAt)
         }))
@@ -291,9 +391,12 @@ function EventDetailsPage() {
                   <Users className="h-5 w-5 text-neon-pink" />
                   <div>
                     <p className="font-semibold">Participants</p>
-                    <p className="text-sm">
-                      {event.totalParticipantCount || event.participantCount || 0} / {event.maxParticipants || 'Unlimited'}
-                    </p>
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <Users className="w-4 h-4" />
+                      <span>
+                        {participants.length} / {event.maxParticipants || 'Unlimited'}
+                      </span>
+                    </div>
                     {event.guestParticipantCount > 0 && (
                       <p className="text-xs text-gray-400">
                         ({event.guestParticipantCount} guests)
@@ -336,6 +439,102 @@ function EventDetailsPage() {
           {showRequestForm && currentUser && (
             <Card className="mb-6 bg-gray-800/50">
               <CardContent className="p-4">
+                {/* YouTube Search Section */}
+                <div className="mb-6 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+                  <h3 className="text-red-400 font-semibold mb-3 flex items-center gap-2">
+                    <Play className="h-4 w-4" />
+                    Search YouTube
+                  </h3>
+                  
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search for songs on YouTube..."
+                      className="bg-gray-700 border-gray-600 text-white flex-1"
+                      onKeyPress={(e) => e.key === 'Enter' && handleYouTubeSearch()}
+                    />
+                    <Button 
+                      onClick={handleYouTubeSearch}
+                      disabled={isSearching}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {isSearching ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Search Results */}
+                  {showSearchResults && (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {searchResults.length === 0 ? (
+                        <p className="text-gray-400 text-center py-4">No results found</p>
+                      ) : (
+                        searchResults.map((song) => (
+                          <div 
+                            key={song.id}
+                            className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg hover:bg-gray-700 cursor-pointer transition-colors"
+                            onClick={() => handleSelectSong(song)}
+                          >
+                            <img 
+                              src={song.thumbnail} 
+                              alt={song.title}
+                              className="w-12 h-12 rounded object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-white font-medium truncate">{song.title}</h4>
+                              <p className="text-gray-400 text-sm truncate">{song.channelTitle}</p>
+                            </div>
+                            <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300">
+                              Select
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {/* Selected Song Display */}
+                  {selectedSong && (
+                    <div className="mt-4 p-3 bg-green-900/20 border border-green-500/30 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={selectedSong.thumbnail} 
+                            alt={selectedSong.title}
+                            className="w-10 h-10 rounded object-cover"
+                          />
+                          <div>
+                            <p className="text-green-400 font-medium text-sm">Selected from YouTube:</p>
+                            <p className="text-white text-sm">{selectedSong.title}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => window.open(`https://www.youtube.com/watch?v=${selectedSong.id}`, '_blank')}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={clearSelectedSong}
+                            className="text-gray-400 hover:text-gray-300"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <form onSubmit={handleSongRequest} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -346,7 +545,7 @@ function EventDetailsPage() {
                         onChange={(e) => setSongRequestForm(prev => ({ ...prev, songTitle: e.target.value }))}
                         required
                         className="bg-gray-700 border-gray-600 text-white"
-                        placeholder="Enter song title"
+                        placeholder="Enter song title or search YouTube above"
                       />
                     </div>
                     <div>
@@ -402,7 +601,12 @@ function EventDetailsPage() {
                     <Button 
                       type="button" 
                       variant="outline" 
-                      onClick={() => setShowRequestForm(false)}
+                      onClick={() => {
+                        setShowRequestForm(false)
+                        setShowSearchResults(false)
+                        setSelectedSong(null)
+                        setSearchQuery('')
+                      }}
                     >
                       Cancel
                     </Button>
@@ -463,7 +667,7 @@ function EventDetailsPage() {
                         <ThumbsUp className={`h-4 w-4 ${
                           likedSongs.has(request.id) ? 'fill-current' : ''
                         }`} />
-                        <span>{request.likesCount || 0}</span>
+                        <span>{request.likeCount || 0}</span>
                       </Button>
                     )}
                   </div>

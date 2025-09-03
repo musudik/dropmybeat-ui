@@ -11,12 +11,16 @@ import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
+import { useGuest } from '../contexts/GuestContext'
+import { useNavigate } from 'react-router-dom'
 import { eventAPI } from '../lib/api'
+import { useQuery } from '@tanstack/react-query'
 
 const EventsPage = () => {
   const { user } = useAuth()
+  const { guestData, isGuest } = useGuest()
+  const navigate = useNavigate()
   const [events, setEvents] = useState([])
-  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -26,30 +30,80 @@ const EventsPage = () => {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false)
   const [qrEvent, setQrEvent] = useState(null)
 
+  const { data: eventsData, isLoading, error } = useQuery({
+    queryKey: ['events'],
+    queryFn: () => eventAPI.getAll(),
+    staleTime: 30000, // 30 seconds
+    cacheTime: 300000, // 5 minutes
+  })
+
   useEffect(() => {
-    fetchEvents()
-  }, [])
+    if (eventsData) {
+      const events = eventsData.data || []
+      setEvents(Array.isArray(events.data) ? events.data : [])
+      
+      // Handle joined events for authenticated users
+      if (user && Array.isArray(events.data)) {
+        const userJoinedEvents = events.data
+          .filter(event => event.participants?.some(p => p.user === user.id))
+          .map(event => event.id)
+        setJoinedEvents(new Set(userJoinedEvents))
+      }
+      
+      // Handle joined events for guest users
+      if (isGuest && guestData && Array.isArray(events.data)) {
+        // For guests, check if they've joined any events by email
+        const guestJoinedEvents = events.data
+          .filter(event => {
+            // Check if guest has joined this event by checking guestParticipants array
+            return event.guestParticipants?.some(guestParticipant => 
+              guestParticipant.email === guestData.email
+            )
+          })
+          .map(event => event.id)
+        setJoinedEvents(new Set(guestJoinedEvents))
+      }
+    }
+  }, [eventsData, user, isGuest, guestData])
 
   const fetchEvents = async () => {
     try {
-      setLoading(true)
       const response = await eventAPI.getAll()
+      
       const eventsData = response.data || []
       setEvents(Array.isArray(eventsData.data) ? eventsData.data : [])
       
+      // Handle joined events for authenticated users
       if (user && Array.isArray(eventsData.data)) {
         const userJoinedEvents = eventsData.data
           .filter(event => event.participants?.some(p => p.user === user.id))
           .map(event => event.id)
         setJoinedEvents(new Set(userJoinedEvents))
       }
+      
+      // Handle joined events for guest users
+      if (isGuest && guestData && Array.isArray(eventsData.data)) {
+        // For guests, check if they've joined any events by email
+        const guestJoinedEvents = eventsData.data
+          .filter(event => {
+            // Check if guest has joined this event by checking guestParticipants array
+            return event.guestParticipants?.some(guestParticipant => 
+              guestParticipant.email === guestData.email
+            )
+          })
+          .map(event => event.id)
+        setJoinedEvents(new Set(guestJoinedEvents))
+      }
     } catch (error) {
       console.error('Error fetching events:', error)
       toast.error('Failed to load events')
       setEvents([])
-    } finally {
-      setLoading(false)
     }
+  }
+
+  // Add navigation handler
+  const handleEventClick = (eventId) => {
+    navigate(`/event/${eventId}`)
   }
 
   // Add handler functions for activate/deactivate
@@ -249,7 +303,7 @@ const EventsPage = () => {
     return matchesSearch && matchesFilter
   }) : []
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white font-oswald text-2xl">LOADING EVENTS...</div>
@@ -262,15 +316,26 @@ const EventsPage = () => {
       {/* Header Section */}
       <div className="bg-gradient-to-r from-black via-gray-900 to-black py-6">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-12"
-          >
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold mb-2">EVENT MANAGEMENT</h1>
-            </div>
+          <div className="max-w-6xl mx-auto space-y-6">
+            {/* Guest Welcome Message */}
+            {isGuest && guestData && (
+              <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-6">
+                <p className="text-blue-300 text-sm">
+                  Welcome, {guestData.firstName || 'Guest'}! You're browsing events as a guest.
+                </p>
+              </div>
+            )}
+            
+            {/* Existing header content */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-center mb-12"
+            >
+              <div className="mb-8">
+                <h1 className="text-4xl font-bold mb-2">EVENT MANAGEMENT</h1>
+              </div>
 
             
             <div className="w-24 h-1 bg-gradient-to-r from-purple-500 to-pink-500 mx-auto mb-6"></div>
@@ -279,13 +344,13 @@ const EventsPage = () => {
             </p>
           </motion.div>
 
-          {/* Search and Controls */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex flex-col md:flex-row gap-4 mb-8 max-w-4xl mx-auto"
-          >
+            {/* Search and Controls */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="flex flex-col md:flex-row gap-4 mb-8 max-w-4xl mx-auto"
+            >
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
@@ -305,16 +370,20 @@ const EventsPage = () => {
               <SelectItem value="Private">Private</SelectItem>
               <SelectItem value="Other">Other</SelectItem>
             </Select>
-            <Button 
-              onClick={() => setIsCreateModalOpen(true)}
-              className="neon-button"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Event
-            </Button>
+            {/* Hide Add Event button for guests */}
+            {!isGuest && (
+              <Button 
+                onClick={() => setIsCreateModalOpen(true)}
+                className="neon-button"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Event
+              </Button>
+            )}
           </motion.div>
+          </div>
         </div>
       </div>
 
@@ -355,7 +424,19 @@ const EventsPage = () => {
               ) : (
                 filteredEvents.map((event, index) => {
                   const dateInfo = formatDate(event.startDate)
-                  const isJoined = joinedEvents.has(event.id)
+                  
+                  // Check if user/guest has joined this event
+                  let isJoined = false
+                  
+                  if (user) {
+                    // For authenticated users, check the joinedEvents set
+                    isJoined = joinedEvents.has(event.id)
+                  } else if (isGuest && guestData) {
+                    // For guest users, check if their email is in the guestParticipants array
+                    isJoined = event.guestParticipants?.some(guestParticipant => 
+                      guestParticipant.email === guestData.email
+                    ) || false
+                  }
                   
                   return (
                     <motion.div
@@ -364,9 +445,21 @@ const EventsPage = () => {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
                       transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="group hover:bg-gray-800/50 transition-all duration-300"
+                      className={`group hover:bg-gray-800/50 transition-all duration-300 cursor-pointer ${
+                        event.status?.toLowerCase() === 'active' 
+                          ? 'neon-wave-animation relative overflow-hidden' 
+                          : ''
+                      }`}
+                      onClick={() => handleEventClick(event.id)}
                     >
-                      <div className="flex flex-col md:flex-row md:items-center px-4 md:px-6 py-6 gap-4 md:gap-0">
+                      {/* Add neon wave overlay for active events */}
+                      {event.status?.toLowerCase() === 'active' && (
+                        <div className="absolute inset-0 pointer-events-none">
+                          <div className="neon-wave-overlay"></div>
+                        </div>
+                      )}
+                      
+                      <div className="flex flex-col md:flex-row md:items-center px-4 md:px-6 py-6 gap-4 md:gap-0 relative z-10">
                         {/* Mobile: Event Header */}
                         <div className="flex items-start gap-4 md:hidden">
                           {/* Date Column - Mobile */}
@@ -479,77 +572,110 @@ const EventsPage = () => {
                           </div>
                         </div>
 
-                        {/* Mobile: Price and Actions */}
-                        <div className="flex items-center justify-between md:hidden">
-                          <div className="flex items-center gap-2">
-                            {user && (
-                              <Button
-                                size="sm"
-                                onClick={() => isJoined ? handleLeaveEvent(event.id) : handleJoinEvent(event.id)}
-                                className={`font-oswald font-semibold tracking-wide px-4 py-2 ${
-                                  isJoined 
-                                    ? 'bg-gray-600 hover:bg-gray-700 text-white' 
-                                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white'
-                                }`}
-                              >
-                                {isJoined ? 'JOINED' : 'JOIN'}
-                              </Button>
-                            )}
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 mt-4 md:mt-0">
+                          {/* QR Code Button */}
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation() // Prevent row click
+                              handleShowQR(event)
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </Button>
+
+                          {/* Copy Link Button */}
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation() // Prevent row click
+                              handleCopyJoinLink(event.id)
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            className="text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+
+                          {/* Join/Leave Button */}
+                          {(user || isGuest) && (
                             <Button
+                              onClick={(e) => {
+                                e.stopPropagation() // Prevent row click
+                                isJoined ? handleLeaveEvent(event.id) : handleJoinEvent(event.id)
+                              }}
+                              variant={isJoined ? "secondary" : "default"}
                               size="sm"
-                              variant="ghost"
-                              onClick={() => handleShowQR(event)}
-                              className="text-gray-400 hover:text-white hover:bg-gray-700 p-2"
-                              title="Share Event"
+                              className={isJoined 
+                                ? "bg-green-600/20 border-green-500/50 text-green-300 hover:bg-green-600/30 font-oswald font-medium tracking-wide"
+                                : "neon-button font-oswald font-medium tracking-wide"
+                              }
                             >
-                              <QrCode className="w-4 h-4" />
+                              {isJoined ? 'JOINED' : 'JOIN'}
                             </Button>
-                            {user?.role === 'Admin' && (
-                              <div className="flex gap-1">
-                                {canActivateEvent(event) && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleActivateEvent(event.id)}
-                                    className="text-gray-400 hover:text-green-400 hover:bg-gray-700 p-2"
-                                    title="Activate Event"
-                                  >
-                                    <Power className="w-4 h-4" />
-                                  </Button>
-                                )}
-                                {canDeactivateEvent(event) && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleDeactivateEvent(event.id)}
-                                    className="text-gray-400 hover:text-orange-400 hover:bg-gray-700 p-2"
-                                    title="Deactivate Event"
-                                  >
-                                    <Power className="w-4 h-4" />
-                                  </Button>
-                                )}
+                          )}
+
+                          {/* Admin/Manager Actions */}
+                          {user && (user.role === 'Admin' || user.role === 'Manager') && (
+                            <>
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation() // Prevent row click
+                                  setSelectedEvent(event)
+                                  setIsEditModalOpen(true)
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation() // Prevent row click
+                                  handleDeleteEvent(event.id)
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+
+                              {/* Activate/Deactivate Button */}
+                              {canActivateEvent(event) && (
                                 <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setSelectedEvent(event)
-                                    setIsEditModalOpen(true)
+                                  onClick={(e) => {
+                                    e.stopPropagation() // Prevent row click
+                                    handleActivateEvent(event.id)
                                   }}
-                                  className="text-gray-400 hover:text-white hover:bg-gray-700 p-2"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
                                   variant="ghost"
-                                  onClick={() => handleDeleteEvent(event.id)}
-                                  className="text-gray-400 hover:text-red-400 hover:bg-gray-700 p-2"
+                                  size="sm"
+                                  className="text-green-400 hover:text-green-300 hover:bg-green-900/20"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Power className="w-4 h-4" />
                                 </Button>
-                              </div>
-                            )}
-                          </div>
+                              )}
+                              
+                              {canDeactivateEvent(event) && (
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation() // Prevent row click
+                                    handleDeactivateEvent(event.id)
+                                  }}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-orange-400 hover:text-orange-300 hover:bg-orange-900/20"
+                                >
+                                  <Power className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </>
+                          )}
                         </div>
 
                         {/* Desktop: Price Column */}
@@ -559,78 +685,7 @@ const EventsPage = () => {
                           </div>
                         </div>
 
-                        {/* Desktop: Action Column */}
-                        <div className="hidden md:flex flex-shrink-0 w-45 text-right ml-6">
-                          <div className="flex items-center justify-end gap-2">
-                            {user && (
-                              <Button
-                                size="sm"
-                                onClick={() => isJoined ? handleLeaveEvent(event.id) : handleJoinEvent(event.id)}
-                                className={`font-oswald font-semibold tracking-wide px-4 py-2 ${
-                                  isJoined 
-                                    ? 'bg-gray-600 hover:bg-gray-700 text-white' 
-                                    : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white'
-                                }`}
-                              >
-                                {isJoined ? 'JOINED' : 'JOIN'}
-                              </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleShowQR(event)}
-                              className="text-gray-400 hover:text-white hover:bg-gray-700"
-                              title="Share Event"
-                            >
-                              <QrCode className="w-4 h-4" />
-                            </Button>
-                            {user?.role === 'Admin' && (
-                              <div className="flex gap-1">
-                                {canActivateEvent(event) && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleActivateEvent(event.id)}
-                                    className="text-gray-400 hover:text-green-400 hover:bg-gray-700"
-                                    title="Activate Event"
-                                  >
-                                    <Power className="w-4 h-4" />
-                                  </Button>
-                                )}
-                                {canDeactivateEvent(event) && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleDeactivateEvent(event.id)}
-                                    className="text-gray-400 hover:text-orange-400 hover:bg-gray-700"
-                                    title="Deactivate Event"
-                                  >
-                                    <Power className="w-4 h-4" />
-                                  </Button>
-                                )}
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setSelectedEvent(event)
-                                    setIsEditModalOpen(true)
-                                  }}
-                                  className="text-gray-400 hover:text-white hover:bg-gray-700"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteEvent(event.id)}
-                                  className="text-gray-400 hover:text-red-400 hover:bg-gray-700"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+
                       </div>
                     </motion.div>
                   )
