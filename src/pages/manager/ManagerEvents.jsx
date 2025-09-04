@@ -29,8 +29,20 @@ const ManagerEvents = () => {
     venue: '',
     date: '',
     time: '',
+    startTime: '',
+    endTime: '',
+    startDate: '',
+    endDate: '',
+    location: '',
     maxParticipants: '',
     isPublic: true,
+    allowSongRequests: true,
+    timeBombEnabled: false,
+    timeBombDuration: 120,
+    eventType: 'Festival',
+    'venue.name': '',
+    'venue.address': '',
+    'venue.city': '',
     genres: [],
     rules: ''
   })
@@ -68,20 +80,53 @@ const ManagerEvents = () => {
   }
 
   const handleCreateEvent = async (e) => {
+    console.log('handleCreateEvent called');
+    alert('Create Event');
     e.preventDefault()
+    
+    console.log('Form data before processing:', formData);
+    console.log('User object:', user);
+    
+    // Check if required fields are missing - Updated validation
+    if (!formData.name || !formData.startTime || !formData.startDate) {
+      console.log('Missing required fields:', {
+        name: formData.name,
+        startTime: formData.startTime,
+        startDate: formData.startDate
+      });
+      showToast('Please fill in all required fields (Name, Start Time, and Start Date)', 'destructive');
+      return;
+    }
+    
     try {
       const eventData = {
         ...formData,
-        date: new Date(`${formData.date}T${formData.time}`).toISOString(),
+        startTime: formData.startTime ? new Date(formData.startTime).toISOString() : null,
+        endTime: formData.endTime ? new Date(formData.endTime).toISOString() : null,
+        startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
         maxParticipants: parseInt(formData.maxParticipants) || null,
-        managerId: user?.id
+        createdBy: user?.id, // Fix: Use createdBy instead of managerId
+        timeBombDuration: Math.min(parseInt(formData.timeBombDuration) || 120, 180) // Fix: Cap at 180 minutes
       }
-      await eventAPI.create(eventData)
+      
+      // Remove fields that shouldn't be sent to API
+      delete eventData.date;
+      delete eventData.time;
+      delete eventData.managerId;
+      
+      console.log('Event data:', eventData);
+      
+      console.log('Making API call...');
+      const response = await eventAPI.create(eventData);
+      console.log('API response:', response);
+      
       showToast('Event created successfully', 'success')
       setIsCreateModalOpen(false)
       resetForm()
       fetchEvents()
     } catch (error) {
+      console.error('Error in handleCreateEvent:', error);
       showToast('Error creating event', 'destructive')
     }
   }
@@ -123,8 +168,20 @@ const ManagerEvents = () => {
       venue: '',
       date: '',
       time: '',
+      startTime: '',
+      endTime: '',
+      startDate: '',
+      endDate: '',
+      location: '',
       maxParticipants: '',
       isPublic: true,
+      allowSongRequests: true,
+      timeBombEnabled: false,
+      timeBombDuration: 120,
+      eventType: 'Festival',
+      'venue.name': '',
+      'venue.address': '',
+      'venue.city': '',
       genres: [],
       rules: ''
     })
@@ -328,15 +385,10 @@ const ManagerEvents = () => {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                {statusFilter === 'all' ? 'All Events' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Events</SelectItem>
-                <SelectItem value="upcoming">Upcoming</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="past">Past</SelectItem>
-              </SelectContent>
+              <SelectItem value="all">All Events</SelectItem>
+              <SelectItem value="upcoming">Upcoming</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="past">Past</SelectItem>
             </Select>
           </div>
 
@@ -445,7 +497,11 @@ const ManagerEvents = () => {
               Create a new DJ event for participants to join and request songs.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateEvent} className="space-y-4">
+          <form onSubmit={(e) => {
+            console.log('Form submitted - event object:', e);
+            console.log('Current formData at submission:', formData);
+            handleCreateEvent(e);
+          }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="name">Event Name</Label>
@@ -455,6 +511,85 @@ const ManagerEvents = () => {
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   required
                   placeholder="Saturday Night Party"
+                />
+              </div>
+              <div>
+                <Label htmlFor="eventType">Event Type</Label>
+                <Select value={formData.eventType} onValueChange={(value) => setFormData({...formData, eventType: value})}>
+                  <SelectItem value="Wedding">Wedding</SelectItem>
+                  <SelectItem value="Birthday">Birthday</SelectItem>
+                  <SelectItem value="Corporate">Corporate</SelectItem>
+                  <SelectItem value="Club">Club</SelectItem>
+                  <SelectItem value="Festival">Festival</SelectItem>
+                  <SelectItem value="Private">Private</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </Select>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                placeholder="Describe your event..."
+                rows={3}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="startTime">Start Time</Label>
+                <Input
+                  id="startTime"
+                  type="datetime-local"
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="endTime">End Time</Label>
+                <Input
+                  id="endTime"
+                  type="datetime-local"
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({...formData, endTime: e.target.value})}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  type="datetime-local"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="endDate">End Date</Label>
+                <Input
+                  id="endDate"
+                  type="datetime-local"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  placeholder="Event location"
                 />
               </div>
               <div>
@@ -468,38 +603,37 @@ const ManagerEvents = () => {
                 />
               </div>
             </div>
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Describe your event..."
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="date">Date</Label>
+                <Label htmlFor="venueName">Venue Name</Label>
                 <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  required
+                  id="venueName"
+                  value={formData['venue.name']}
+                  onChange={(e) => setFormData({...formData, 'venue.name': e.target.value})}
+                  placeholder="Venue name"
                 />
               </div>
               <div>
-                <Label htmlFor="time">Time</Label>
+                <Label htmlFor="venueAddress">Venue Address</Label>
                 <Input
-                  id="time"
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) => setFormData({...formData, time: e.target.value})}
-                  required
+                  id="venueAddress"
+                  value={formData['venue.address']}
+                  onChange={(e) => setFormData({...formData, 'venue.address': e.target.value})}
+                  placeholder="Street address"
+                />
+              </div>
+              <div>
+                <Label htmlFor="venueCity">Venue City</Label>
+                <Input
+                  id="venueCity"
+                  value={formData['venue.city']}
+                  onChange={(e) => setFormData({...formData, 'venue.city': e.target.value})}
+                  placeholder="City"
                 />
               </div>
             </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="maxParticipants">Max Participants (optional)</Label>
@@ -514,11 +648,55 @@ const ManagerEvents = () => {
               <div>
                 <Label htmlFor="isPublic">Visibility</Label>
                 <Select value={formData.isPublic.toString()} onValueChange={(value) => setFormData({...formData, isPublic: value === 'true'})}>
-                  <SelectItem value="true">Public</SelectItem>
-                  <SelectItem value="false">Private</SelectItem>
+                  <SelectTrigger>
+                    {formData.isPublic ? 'Public' : 'Private'}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Public</SelectItem>
+                    <SelectItem value="false">Private</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
             </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="allowSongRequests"
+                  checked={formData.allowSongRequests}
+                  onChange={(e) => setFormData({...formData, allowSongRequests: e.target.checked})}
+                  className="rounded border-gray-600 bg-gray-800"
+                />
+                <Label htmlFor="allowSongRequests">Allow Song Requests</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="timeBombEnabled"
+                  checked={formData.timeBombEnabled}
+                  onChange={(e) => setFormData({...formData, timeBombEnabled: e.target.checked})}
+                  className="rounded border-gray-600 bg-gray-800"
+                />
+                <Label htmlFor="timeBombEnabled">Enable TimeBomb</Label>
+              </div>
+            </div>
+            
+            {formData.timeBombEnabled && (
+              <div>
+                <Label htmlFor="timeBombDuration">TimeBomb Duration (minutes)</Label>
+                <Input
+                  id="timeBombDuration"
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={formData.timeBombDuration}
+                  onChange={(e) => setFormData({...formData, timeBombDuration: parseInt(e.target.value) || 120})}
+                  disabled={!formData.timeBombEnabled}
+                />
+              </div>
+            )}
+            
             <div>
               <Label htmlFor="rules">Event Rules (optional)</Label>
               <Textarea
@@ -587,7 +765,10 @@ const ManagerEvents = () => {
                   id="editDate"
                   type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  onChange={(e) => {
+                    console.log('Date changed:', e.target.value);
+                    setFormData({...formData, date: e.target.value});
+                  }}
                   required
                 />
               </div>
@@ -597,7 +778,10 @@ const ManagerEvents = () => {
                   id="editTime"
                   type="time"
                   value={formData.time}
-                  onChange={(e) => setFormData({...formData, time: e.target.value})}
+                  onChange={(e) => {
+                    console.log('Time changed:', e.target.value);
+                    setFormData({...formData, time: e.target.value});
+                  }}
                   required
                 />
               </div>

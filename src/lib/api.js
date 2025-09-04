@@ -142,6 +142,35 @@ export const eventAPI = {
     return publicApi.get(`/events/${id}`);
   },
   getGuestParticipants: (id) => api.get(`/events/${id}/guest-participants`),
+  
+  // Image upload endpoints
+  uploadLogo: (id, formData) => {
+    return api.post(`/events/${id}/upload-logo`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+  uploadBanner: (id, formData) => {
+    return api.post(`/events/${id}/upload-banner`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+  getLogo: (id) => api.get(`/events/${id}/logo`, { responseType: 'blob' }),
+  getBanner: (id) => api.get(`/events/${id}/banner`, { responseType: 'blob' }),
+  deleteLogo: (id) => api.delete(`/events/${id}/logo`),
+  deleteBanner: (id) => api.delete(`/events/${id}/banner`),
+  
+  // Keep the existing uploadImage method for backward compatibility
+  uploadImage: (id, formData) => {
+    return api.post(`/events/${id}/upload-image`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
 }
 
 // Song Request API

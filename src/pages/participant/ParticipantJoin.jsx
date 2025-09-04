@@ -118,15 +118,19 @@ const ParticipantJoin = () => {
       toast.error('Please select an event first')
       return
     }
-
+  
     try {
       setLoading(true)
-      await songRequestAPI.create({
-        ...songRequestForm,
+      console.log(selectedEvent.id)
+      await songRequestAPI.create(selectedEvent.id, {
+        title: songRequestForm.songTitle,
+        artist: songRequestForm.artist,
+        genre: songRequestForm.genre,
+        notes: songRequestForm.notes,
         eventId: selectedEvent.id
       })
       toast.success('Song request submitted successfully!')
-      setSongRequestForm({ songTitle: '', artist: '', genre: '', notes: '' })
+      setSongRequestForm({ songTitle: '', artist: '', genre: '', notes: '', eventId: '' })
       setShowSongRequestForm(false)
       fetchJoinedEvents()
     } catch (error) {

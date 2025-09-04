@@ -166,20 +166,21 @@
   .line-clamp-1 {
     @apply overflow-hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
   }
   
   .line-clamp-2 {
     @apply overflow-hidden;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
   
   .line-clamp-3 {
     @apply overflow-hidden;
     display: -webkit-box;
+    -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
   }
@@ -378,4 +379,58 @@
   50% {
     opacity: 0.8;
   }
+}
+
+/* Add these styles for the scrolling animation */
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 30s linear infinite;
+}
+
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
+
+.pause-animation {
+  animation-play-state: paused;
+}
+
+/* Vertical scrolling animation for events */
+@keyframes verticalScroll {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-vertical-scroll {
+  animation: verticalScroll 5s linear infinite;
+}
+
+.animate-vertical-scroll:hover {
+  animation-play-state: paused;
+}
+
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }

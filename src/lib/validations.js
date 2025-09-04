@@ -32,7 +32,7 @@ export const registerSchema = z.object({
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
       'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
   confirmPassword: z.string().min(1, 'Please confirm your password'),
-  role: z.enum(['Participant', 'Manager'], {
+  role: z.enum(['Member', 'Manager'], {
     required_error: 'Please select a role',
   }),
   phoneNumber: z.string().optional(),

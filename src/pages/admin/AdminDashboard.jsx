@@ -26,7 +26,7 @@ const AdminDashboard = () => {
     lastName: '',
     email: '',
     password: '',
-    role: 'manager',
+    role: '',
     organization: '',
     favoriteGenres: []
   })
@@ -40,10 +40,10 @@ const AdminDashboard = () => {
   const fetchManagers = async () => {
     try {
       setLoading(true)
-      const response = await personAPI.getAll({ role: 'manager,admin' })
+      const response = await personAPI.getAll({ role: 'Manager' })
       setManagers(response.data.data || [])
     } catch (error) {
-      showToast('Error fetching managers', 'destructive')
+      showToast('Error fetching Managers', 'destructive')
     } finally {
       setLoading(false)
     }
@@ -138,9 +138,9 @@ const AdminDashboard = () => {
 
   const getRoleBadgeVariant = (role) => {
     switch (role) {
-      case 'admin': return 'neon'
-      case 'manager': return 'default'
-      case 'participant': return 'secondary'
+      case 'Admin': return 'neon'
+      case 'Manager': return 'default'
+      case 'Member': return 'secondary'
       default: return 'outline'
     }
   }
@@ -354,8 +354,9 @@ const AdminDashboard = () => {
                   {formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="-">Select Role</SelectItem>
+                  <SelectItem value="Manager">Manager</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>

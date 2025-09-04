@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from './ui/Button'
@@ -14,13 +14,16 @@ import {
   Menu, 
   X,
   Bell,
-  LogOut
+  LogOut,
+  LogIn,
+  UserPlus
 } from 'lucide-react'
 
 const MobileNav = () => {
-  const { user, logout } = useAuth()
+  const { user, logout, isAuthenticated } = useAuth()
   const { unreadCount } = useRealTime()
   const location = useLocation()
+  const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
 
   const navItems = [
@@ -86,7 +89,7 @@ const MobileNav = () => {
           className="relative p-2"
         >
           <Menu className="h-6 w-6" />
-          {unreadCount > 0 && (
+          {isAuthenticated && unreadCount > 0 && (
             <Badge 
               variant="destructive" 
               className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs"
@@ -122,7 +125,7 @@ const MobileNav = () => {
               <div className="flex flex-col h-full">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-border">
-                  <Link to="/dashboard" className="flex items-center">
+                  <Link to={isAuthenticated ? "/dashboard" : "/"} className="flex items-center">
                     <img 
                       src="/src/assets/DropMyBeats.gif" 
                       alt="DropMyBeats Logo" 
@@ -141,119 +144,150 @@ const MobileNav = () => {
 
                 {/* Navigation Items */}
                 <div className="flex-1 py-6">
-                  <nav className="space-y-2 px-4">
-                    {/* Main Navigation */}
-                    <div className="space-y-1">
-                      {navItems.map((item, index) => {
-                        const Icon = item.icon
-                        return (
-                          <motion.div
-                            key={item.path}
-                            variants={itemVariants}
-                            initial="closed"
-                            animate="open"
-                            custom={index}
-                          >
-                            <Link
-                              to={item.path}
-                              onClick={() => setIsOpen(false)}
-                              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                                isActive(item.path)
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                              }`}
+                  {isAuthenticated ? (
+                    <nav className="space-y-2 px-4">
+                      {/* Main Navigation */}
+                      <div className="space-y-1">
+                        {navItems.map((item, index) => {
+                          const Icon = item.icon
+                          return (
+                            <motion.div
+                              key={item.path}
+                              variants={itemVariants}
+                              initial="closed"
+                              animate="open"
+                              custom={index}
                             >
-                              <Icon className="h-5 w-5" />
-                              <span className="font-medium">{item.label}</span>
-                            </Link>
-                          </motion.div>
-                        )
-                      })}
+                              <Link
+                                to={item.path}
+                                onClick={() => setIsOpen(false)}
+                                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                                  isActive(item.path)
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                                }`}
+                              >
+                                <Icon className="h-5 w-5" />
+                                <span className="font-medium">{item.label}</span>
+                              </Link>
+                            </motion.div>
+                          )
+                        })}
+                      </div>
+
+                      {/* Role-specific Navigation */}
+                      {user?.role === 'admin' && (
+                        <div className="pt-4 border-t border-border">
+                          <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Admin
+                          </p>
+                          {adminItems.map((item, index) => {
+                            const Icon = item.icon
+                            return (
+                              <motion.div
+                                key={item.path}
+                                variants={itemVariants}
+                                initial="closed"
+                                animate="open"
+                                custom={navItems.length + index}
+                              >
+                                <Link
+                                  to={item.path}
+                                  onClick={() => setIsOpen(false)}
+                                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                                    isActive(item.path)
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                                  }`}
+                                >
+                                  <Icon className="h-5 w-5" />
+                                  <span className="font-medium">{item.label}</span>
+                                </Link>
+                              </motion.div>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      {user?.role === 'manager' && (
+                        <div className="pt-4 border-t border-border">
+                          <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Manager
+                          </p>
+                          {managerItems.map((item, index) => {
+                            const Icon = item.icon
+                            return (
+                              <motion.div
+                                key={item.path}
+                                variants={itemVariants}
+                                initial="closed"
+                                animate="open"
+                                custom={navItems.length + index}
+                              >
+                                <Link
+                                  to={item.path}
+                                  onClick={() => setIsOpen(false)}
+                                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                                    isActive(item.path)
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                                  }`}
+                                >
+                                  <Icon className="h-5 w-5" />
+                                  <span className="font-medium">{item.label}</span>
+                                </Link>
+                              </motion.div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </nav>
+                  ) : (
+                    <div className="px-4 space-y-4">
+                      <p className="text-center text-muted-foreground mb-6">
+                        Please sign in to access the app
+                      </p>
+                      <Button
+                        onClick={() => {
+                          navigate('/auth/login')
+                          setIsOpen(false)
+                        }}
+                        className="w-full justify-start"
+                      >
+                        <LogIn className="h-5 w-5 mr-3" />
+                        Login
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          navigate('/auth/register')
+                          setIsOpen(false)
+                        }}
+                        className="w-full justify-start"
+                      >
+                        <UserPlus className="h-5 w-5 mr-3" />
+                        Sign Up
+                      </Button>
                     </div>
-
-                    {/* Role-specific Navigation */}
-                    {user?.role === 'admin' && (
-                      <div className="pt-4 border-t border-border">
-                        <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Admin
-                        </p>
-                        {adminItems.map((item, index) => {
-                          const Icon = item.icon
-                          return (
-                            <motion.div
-                              key={item.path}
-                              variants={itemVariants}
-                              initial="closed"
-                              animate="open"
-                              custom={navItems.length + index}
-                            >
-                              <Link
-                                to={item.path}
-                                onClick={() => setIsOpen(false)}
-                                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                                  isActive(item.path)
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                                }`}
-                              >
-                                <Icon className="h-5 w-5" />
-                                <span className="font-medium">{item.label}</span>
-                              </Link>
-                            </motion.div>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {user?.role === 'manager' && (
-                      <div className="pt-4 border-t border-border">
-                        <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          Manager
-                        </p>
-                        {managerItems.map((item, index) => {
-                          const Icon = item.icon
-                          return (
-                            <motion.div
-                              key={item.path}
-                              variants={itemVariants}
-                              initial="closed"
-                              animate="open"
-                              custom={navItems.length + index}
-                            >
-                              <Link
-                                to={item.path}
-                                onClick={() => setIsOpen(false)}
-                                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                                  isActive(item.path)
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                                }`}
-                              >
-                                <Icon className="h-5 w-5" />
-                                <span className="font-medium">{item.label}</span>
-                              </Link>
-                            </motion.div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </nav>
+                  )}
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-border">
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      logout()
-                      setIsOpen(false)
-                    }}
-                    className="w-full justify-start text-muted-foreground hover:text-foreground"
-                  >
-                    <LogOut className="h-5 w-5 mr-3" />
-                    Sign Out
-                  </Button>
-                </div>
+                {isAuthenticated && (
+                  <div className="p-4 border-t border-border">
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        logout()
+                        setIsOpen(false)
+                      }}
+                      className="w-full justify-start text-muted-foreground hover:text-foreground"
+                    >
+                      <LogOut className="h-5 w-5 mr-3" />
+                      Sign Out
+                    </Button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>

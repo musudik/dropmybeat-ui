@@ -7,12 +7,13 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Heart, Music, Clock, Users, MapPin, Calendar, Send, ArrowLeft, Star, ThumbsUp, Search, Play, ExternalLink } from 'lucide-react'
+import { Heart, Music, Clock, Users, MapPin, Calendar, Send, ArrowLeft, Star, ThumbsUp, Search, Play, ExternalLink, Camera } from 'lucide-react'
 import { eventAPI, songRequestAPI } from '../lib/api'
 import { searchYouTube } from '../lib/youtube'
 import { useAuth } from '../contexts/AuthContext'
 import { useGuest } from '../contexts/GuestContext'
 import toast from 'react-hot-toast'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/Dialog'
 
 function EventDetailsPage() {
   const { eventId } = useParams()
@@ -41,8 +42,175 @@ function EventDetailsPage() {
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [selectedSong, setSelectedSong] = useState(null)
 
+  // Enhanced photo upload states
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false)
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false)
+  const [uploadType, setUploadType] = useState('banner') // 'logo' or 'banner'
+  const [dragActive, setDragActive] = useState(false)
+
   // Define current user (either authenticated user or guest)
   const currentUser = user || (isGuest && guestData ? { id: guestData.sessionId, ...guestData } : null)
+
+  // Permission check function
+  const canEditEvent = () => {
+    if (!user) return false
+    if (user.role === 'Admin') return true
+    if (user.role === 'Manager' && event?.createdBy === user.id) return true
+    return false
+  }
+
+  // Validate file function
+  const validateFile = (file) => {
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file (JPG, PNG, GIF)')
+      return false
+    }
+    
+    // Check file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB')
+      return false
+    }
+    
+    return true
+  }
+
+  // Enhanced photo upload handler
+  const handlePhotoUpload = async (file, type = 'banner') => {
+    if (!file || !validateFile(file)) return
+    
+    const isLogo = type === 'logo'
+    const setUploading = isLogo ? setIsUploadingLogo : setIsUploadingBanner
+    
+    setUploading(true)
+    
+    try {
+      const formData = new FormData()
+      // Use the correct field name based on upload type
+      if (isLogo) {
+        formData.append('logo', file)
+      } else {
+        formData.append('banner', file)
+      }
+      
+      // Create a temporary URL for immediate preview
+      const tempImageUrl = URL.createObjectURL(file)
+      
+      // Update event state immediately for better UX
+      setEvent(prev => ({ 
+        ...prev, 
+        [isLogo ? 'logoUrl' : 'bannerImageUrl']: tempImageUrl 
+      }))
+      
+      // Upload to backend using the appropriate endpoint
+      let response
+      if (isLogo) {
+        response = await eventAPI.uploadLogo(eventId, formData)
+      } else {
+        response = await eventAPI.uploadBanner(eventId, formData)
+      }
+      
+      // Update with the actual URL from backend
+      const imageUrl = `${import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app')}/events/${eventId}/${isLogo ? 'logo' : 'banner'}`
+      setEvent(prev => ({ 
+        ...prev, 
+        [isLogo ? 'logoUrl' : 'bannerImageUrl']: imageUrl,
+        [isLogo ? 'logo' : 'bannerImage']: response.data.fileId || response.data.id
+      }))
+      
+      toast.success(`Event ${isLogo ? 'logo' : 'banner'} updated successfully!`)
+      setShowPhotoUpload(false)
+      
+      // Clean up the temporary URL
+      URL.revokeObjectURL(tempImageUrl)
+      
+    } catch (error) {
+      console.error(`Error uploading ${type}:`, error)
+      
+      // Handle specific error cases
+      if (error.response?.status === 403) {
+        toast.error('You do not have permission to upload images for this event')
+      } else if (error.response?.status === 413) {
+        toast.error('File size too large. Please choose a smaller image.')
+      } else {
+        toast.error(`Failed to upload ${isLogo ? 'logo' : 'banner'}. Please try again.`)
+      }
+      
+      // Revert to original image on error
+      fetchEventDetails()
+    } finally {
+      setUploading(false)
+    }
+  }
+  
+  // File input handler
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+      handlePhotoUpload(file, uploadType)
+    }
+    // Reset the input value to allow selecting the same file again
+    event.target.value = ''
+  }
+
+  // Drag and drop handlers
+  const handleDrag = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true)
+    } else if (e.type === 'dragleave') {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handlePhotoUpload(e.dataTransfer.files[0], uploadType)
+    }
+  }
+
+  // Delete image handler
+  const handleDeleteImage = async (type) => {
+    if (!canEditEvent()) {
+      toast.error('You do not have permission to delete images for this event')
+      return
+    }
+
+    const isLogo = type === 'logo'
+    const setUploading = isLogo ? setIsUploadingLogo : setIsUploadingBanner
+    
+    try {
+      setUploading(true)
+      
+      if (isLogo) {
+        await eventAPI.deleteLogo(eventId)
+      } else {
+        await eventAPI.deleteBanner(eventId)
+      }
+      
+      // Update event state
+      setEvent(prev => ({ 
+        ...prev, 
+        [isLogo ? 'logoUrl' : 'bannerImageUrl']: null,
+        [isLogo ? 'logo' : 'bannerImage']: null
+      }))
+      
+      toast.success(`Event ${isLogo ? 'logo' : 'banner'} deleted successfully!`)
+      
+    } catch (error) {
+      console.error(`Error deleting ${type}:`, error)
+      toast.error(`Failed to delete ${isLogo ? 'logo' : 'banner'}. Please try again.`)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   useEffect(() => {
     fetchEventDetails()
@@ -60,7 +228,34 @@ function EventDetailsPage() {
         // Guest user - use public API
         response = await eventAPI.getPublic(eventId)
       }
-      setEvent(response.data.data || response.data)
+      const eventData = response.data.data || response.data
+      
+      // Process logo and banner images if they exist
+      if (eventData.logo) {
+        // Convert GridFS ID to image URL
+        eventData.logoUrl = `${import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app')}/events/${eventId}/logo`
+      }
+      
+      if (eventData.bannerImage) {
+        // Convert GridFS ID to image URL with error handling
+        const bannerUrl = `${import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app')}/events/${eventId}/banner`
+        
+        // Test if banner URL is accessible
+        try {
+          const bannerResponse = await fetch(bannerUrl, { method: 'HEAD' })
+          if (bannerResponse.ok) {
+            eventData.bannerImageUrl = bannerUrl
+          } else {
+            console.warn('Banner image not accessible:', bannerResponse.status)
+            eventData.bannerImageUrl = null
+          }
+        } catch (bannerError) {
+          console.warn('Banner image fetch failed:', bannerError)
+          eventData.bannerImageUrl = null
+        }
+      }
+      
+      setEvent(eventData)
     } catch (error) {
       console.error('Error fetching event details:', error)
       if (error.response?.status === 404) {
@@ -118,8 +313,9 @@ function EventDetailsPage() {
 
   const fetchParticipants = async () => {
     try {
-      const response = await eventAPI.getGuestParticipants(eventId)
-      setParticipants(response.data.data || [])
+      // Use the regular event details endpoint which should include participant info
+      const response = await eventAPI.getPublic(eventId)
+      setParticipants(response.data.data?.participants || [])
     } catch (error) {
       console.error('Error fetching participants:', error)
       setParticipants([])
@@ -195,11 +391,12 @@ function EventDetailsPage() {
         title: songRequestForm.songTitle,
         artist: songRequestForm.artist,
         genre: songRequestForm.genre,
-        notes: songRequestForm.notes
+        notes: songRequestForm.notes,
+        eventId: eventId
       })
       
       toast.success('Song request submitted successfully!')
-      setSongRequestForm({ songTitle: '', artist: '', genre: '', notes: '' })
+      setSongRequestForm({ songTitle: '', artist: '', genre: '', notes: '', eventId: eventId })
       setShowRequestForm(false)
       fetchSongRequests() // Refresh the list
     } catch (error) {
@@ -329,19 +526,191 @@ function EventDetailsPage() {
       <Card className="neon-border bg-gradient-to-r from-purple-900/20 to-pink-900/20">
         <CardContent className="p-8">
           <div className="flex flex-col lg:flex-row gap-6">
-            {/* Event Image */}
-            <div className="lg:w-1/3">
-              {event.bannerImage || event.logo ? (
+            {/* Event Image with Enhanced Upload Functionality */}
+            <div className="lg:w-1/3 relative group">
+              {(event.bannerImageUrl || event.logoUrl) ? (
                 <img 
-                  src={event.bannerImage || event.logo} 
+                  src={event.bannerImageUrl || event.logoUrl} 
                   alt={event.name}
                   className="w-full h-64 lg:h-80 object-cover rounded-lg neon-border"
+                  onError={(e) => {
+                    // Fallback to default gradient if image fails to load
+                    e.target.style.display = 'none'
+                    e.target.nextSibling.style.display = 'flex'
+                  }}
                 />
-              ) : (
-                <div className="w-full h-64 lg:h-80 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg neon-border flex items-center justify-center">
-                  <Music className="h-20 w-20 text-white/50" />
+              ) : null}
+              
+              {/* Fallback gradient background */}
+              <div 
+                className={`w-full h-64 lg:h-80 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg neon-border flex items-center justify-center ${
+                  (event.bannerImageUrl || event.logoUrl) ? 'hidden' : 'flex'
+                }`}
+              >
+                <Music className="h-20 w-20 text-white/50" />
+              </div>
+              
+              {/* Photo Upload Overlay - Only show for authorized users */}
+              {canEditEvent() && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center">
+                  <div className="text-center space-y-2">
+                    <Button
+                      onClick={() => {
+                        setUploadType('banner')
+                        setShowPhotoUpload(true)
+                      }}
+                      variant="outline"
+                      className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm mr-2"
+                      disabled={isUploadingBanner}
+                    >
+                      {isUploadingBanner ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>  
+                          <Camera className="h-4 w-4 mr-2" />
+                          {event.bannerImageUrl ? 'Change Banner' : 'Add Banner'}
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setUploadType('logo')
+                        setShowPhotoUpload(true)
+                      }}
+                      variant="outline"
+                      className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
+                      disabled={isUploadingLogo}
+                    >
+                      {isUploadingLogo ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>  
+                          <Camera className="h-4 w-4 mr-2" />
+                          {event.logoUrl ? 'Change Logo' : 'Add Logo'}
+                        </>
+                      )}
+                    </Button>
+                    {(event.bannerImageUrl || event.logoUrl) && (
+                      <div className="flex gap-2 mt-2">
+                        {event.bannerImageUrl && (
+                          <Button
+                            onClick={() => handleDeleteImage('banner')}
+                            variant="outline"
+                            size="sm"
+                            className="bg-red-600/20 border-red-500/30 text-red-300 hover:bg-red-600/30"
+                            disabled={isUploadingBanner}
+                          >
+                            Delete Banner
+                          </Button>
+                        )}
+                        {event.logoUrl && (
+                          <Button
+                            onClick={() => handleDeleteImage('logo')}
+                            variant="outline"
+                            size="sm"
+                            className="bg-red-600/20 border-red-500/30 text-red-300 hover:bg-red-600/30"
+                            disabled={isUploadingLogo}
+                          >
+                            Delete Logo
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
+              
+              {/* Enhanced Photo Upload Modal */}
+              {showPhotoUpload && (
+                <Dialog open={showPhotoUpload} onOpenChange={setShowPhotoUpload}>
+                  <DialogContent className="bg-gray-900 border-gray-700">
+                    <DialogHeader>
+                      <DialogTitle className="text-white">
+                        Upload Event {uploadType === 'logo' ? 'Logo' : 'Banner'}
+                      </DialogTitle>
+                      <DialogDescription className="text-gray-400">
+                        Choose a new {uploadType === 'logo' ? 'logo' : 'banner'} for this event. 
+                        Supported formats: JPG, PNG, GIF (max 5MB)
+                        {uploadType === 'logo' && ' - Logo will be displayed in event listings and cards.'}
+                        {uploadType === 'banner' && ' - Banner will be displayed as the main event image.'}
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4">
+                      <div 
+                        className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 transition-colors ${
+                          dragActive 
+                            ? 'border-purple-400 bg-purple-500/10' 
+                            : 'border-gray-600 hover:border-purple-500'
+                        }`}
+                        onDragEnter={handleDrag}
+                        onDragLeave={handleDrag}
+                        onDragOver={handleDrag}
+                        onDrop={handleDrop}
+                      >
+                        <Camera className="h-12 w-12 text-gray-400 mb-4" />
+                        <p className="text-gray-400 text-center mb-4">
+                          {dragActive 
+                            ? 'Drop the image here...' 
+                            : 'Click to select an image or drag and drop'
+                          }
+                        </p>
+                        <Button
+                          onClick={() => document.getElementById('photo-upload').click()}
+                          variant="outline"
+                          className="bg-purple-600 hover:bg-purple-700 text-white border-purple-500"
+                          disabled={isUploadingLogo || isUploadingBanner}
+                        >
+                          {(isUploadingLogo || isUploadingBanner) ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Camera className="h-4 w-4 mr-2" />
+                              Browse Files
+                            </>
+                          )}
+                        </Button>
+                        
+                        {/* File size and format info */}
+                        <div className="mt-4 text-xs text-gray-500 text-center">
+                          <p>Maximum file size: 5MB</p>
+                          <p>Supported formats: JPEG, PNG, GIF</p>
+                          {uploadType === 'logo' && <p>Recommended size: 200x200px (square)</p>}
+                          {uploadType === 'banner' && <p>Recommended size: 1200x400px (3:1 ratio)</p>}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowPhotoUpload(false)}
+                        disabled={isUploadingLogo || isUploadingBanner}
+                      >
+                        Cancel
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+              
+              {/* Hidden file input */}
+              <input
+                type="file"
+                id="photo-upload"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
             </div>
             
             {/* Event Details */}

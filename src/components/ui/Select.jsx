@@ -27,16 +27,15 @@ const SelectItem = ({ children, value, ...props }) => {
   )
 }
 
-// These components are kept for compatibility but simplified
+// Remove SelectTrigger and SelectContent as they're not compatible with native select
 const SelectTrigger = ({ children, className, ...props }) => {
-  return (
-    <div className={cn("w-full", className)} {...props}>
-      {children}
-    </div>
-  )
+  // This should not be used with native select - return null or throw error
+  console.warn('SelectTrigger should not be used with native select elements')
+  return null
 }
 
 const SelectContent = ({ children, ...props }) => {
+  // This should not be used with native select - just return children
   return <>{children}</>
 }
 

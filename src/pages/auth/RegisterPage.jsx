@@ -24,7 +24,7 @@ const RegisterPage = () => {
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'Participant',
+      role: 'Member',
       phoneNumber: '',
     },
   })
@@ -144,37 +144,12 @@ const RegisterPage = () => {
               {...register('role')}
               className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
-              <option value="Participant">Participant</option>
-              <option value="Manager">Manager</option>
+              <option value="-">Select Role</option>
+              <option value="Member">Member</option>
+              
             </select>
             {errors.role && (
               <p className="text-sm text-red-500">{errors.role.message}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Password</label>
-            <Input
-              type="password"
-              placeholder="Create a password"
-              {...register('password')}
-              className={errors.password ? 'border-red-500' : ''}
-            />
-            {errors.password && (
-              <p className="text-sm text-red-500">{errors.password.message}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Confirm Password</label>
-            <Input
-              type="password"
-              placeholder="Confirm your password"
-              {...register('confirmPassword')}
-              className={errors.confirmPassword ? 'border-red-500' : ''}
-            />
-            {errors.confirmPassword && (
-              <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
             )}
           </div>
           
