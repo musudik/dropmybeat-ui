@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useGuest } from '../../contexts/GuestContext'
+import { authAPI } from '../../lib/api'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { loginSchema } from '../../lib/validations'
@@ -61,15 +62,26 @@ const LoginPage = () => {
     try {
       setIsGuestSubmitting(true)
       
-      // Create guest session with email
-      const guestData = {
+      // Call backend guest login API with required fields
+      const response = await authAPI.guestLogin({
         email: guestEmail,
-        firstName: 'Guest',
-        lastName: 'User',
+        role: 'Guest' // Required by backend API
+      })
+      
+      // Extract token and user data from response
+      const { token, user: guestUser } = response.data.data
+      
+      // Store guest token in localStorage for API authentication
+      localStorage.setItem('guestToken', token)
+      
+      // Create guest session with backend user data and token
+      const guestData = {
+        ...guestUser,
         sessionId: `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       }
       
-      setGuestSession(guestData)
+      // Pass token to setGuestSession
+      setGuestSession(guestData, null, token)
       toast.success('Logged in as guest!')
       
       // Redirect to the intended page or dashboard
@@ -77,7 +89,8 @@ const LoginPage = () => {
       navigate(from)
       
     } catch (error) {
-      toast.error('Failed to login as guest')
+      console.error('Guest login error:', error)
+      toast.error(error.response?.data?.message || 'Failed to login as guest')
     } finally {
       setIsGuestSubmitting(false)
     }

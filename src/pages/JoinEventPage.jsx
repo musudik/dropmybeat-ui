@@ -197,7 +197,7 @@ const JoinEventPage = () => {
                   <div className="flex items-center gap-3 text-gray-300">
                     <Users className="w-4 h-4 text-purple-400" />
                     <span className="font-roboto">
-                      {event.totalParticipantCount || event.participantCount || 0} / {event.maxParticipants || '∞'} participants
+                      {event.totalParticipantCount || event.MemberCount || 0} / {event.maxParticipants || '∞'} participants
                     </span>
                   </div>
                 </div>

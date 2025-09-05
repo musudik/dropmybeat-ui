@@ -285,7 +285,10 @@ const ParticipantEvents = () => {
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Users className="h-4 w-4" />
-                      {event.currentParticipants}/{event.maxParticipants} participants
+                      {((event.MemberCount || 0) + (event.guestMemberCount || 0))}/{event.maxParticipants || '∞'}
+                      <span className="text-xs text-gray-400 ml-1">
+                        ({event.MemberCount || 0} reg + {event.guestMemberCount || 0} guests)
+                      </span>
                     </div>
                     {event.genre && (
                       <Badge variant="outline" className="text-xs">

@@ -17,6 +17,7 @@ const MemberDashboard = () => {
   const [joinedEvents, setJoinedEvents] = useState([])
   const [songRequests, setSongRequests] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [songRequestCounts, setSongRequestCounts] = useState({})
 
   useEffect(() => {
     fetchEvents()
@@ -43,17 +44,22 @@ const MemberDashboard = () => {
       const response = await eventAPI.getJoinedEvents()
       setJoinedEvents(response.data)
       
-      // Fetch song requests for joined events
+      // Fetch song requests for joined events and count per event
       const allSongRequests = []
+      const counts = {}
       for (const event of response.data) {
         try {
           const requestsResponse = await songRequestAPI.getByEvent(event.id)
-          allSongRequests.push(...requestsResponse.data.filter(req => req.requestedBy === user.id))
+          const userRequests = requestsResponse.data.filter(req => req.requestedBy === user.id)
+          allSongRequests.push(...userRequests)
+          counts[event.id] = userRequests.length
         } catch (error) {
           console.error(`Failed to fetch song requests for event ${event.id}:`, error)
+          counts[event.id] = 0
         }
       }
       setSongRequests(allSongRequests)
+      setSongRequestCounts(counts)
     } catch (error) {
       console.error('Failed to fetch joined events:', error)
     }
@@ -212,7 +218,12 @@ const MemberDashboard = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Music className="w-4 h-4" />
-                      <span>{songRequests.filter(sr => sr.eventId === event.id).length} requests</span>
+                      <span>{songRequestCounts[event.id] || 0}/5 requests</span>
+                      {(songRequestCounts[event.id] || 0) >= 5 && (
+                        <Badge variant="secondary" className="text-xs">
+                          Limit Reached
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   

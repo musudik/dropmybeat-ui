@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger } from '../../components/ui/Select'
 import { Textarea } from '../../components/ui/Textarea'
 import { Toast, ToastTitle, ToastDescription } from '../../components/ui/Toast'
+import { CheckCircle, X } from 'lucide-react'
 
 const ManagerEvents = () => {
   const { user } = useAuth()
@@ -434,8 +435,11 @@ const ManagerEvents = () => {
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                           </svg>
-                          {event.participantCount || 0} participants
+                          {((event.MemberCount || 0) + (event.guestMemberCount || 0))} participants
                           {event.maxParticipants && ` / ${event.maxParticipants}`}
+                          <span className="text-xs text-gray-400 ml-1">
+                            ({event.MemberCount || 0} reg + {event.guestMemberCount || 0} guests)
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -848,7 +852,7 @@ const ManagerEvents = () => {
                   <div className="space-y-2 text-sm">
                     <div><strong>Venue:</strong> {selectedEvent.venue}</div>
                     <div><strong>Date:</strong> {formatDate(selectedEvent.date)}</div>
-                    <div><strong>Participants:</strong> {selectedEvent.participantCount || 0}
+                    <div><strong>Participants:</strong> {((selectedEvent.MemberCount || 0) + (selectedEvent.guestMemberCount || 0))}
                       {selectedEvent.maxParticipants && ` / ${selectedEvent.maxParticipants}`}
                     </div>
                     <div><strong>Visibility:</strong> {selectedEvent.isPublic ? 'Public' : 'Private'}</div>
@@ -877,7 +881,7 @@ const ManagerEvents = () => {
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {songRequests.map((request) => (
+                    {songRequests.filter(request => request.status !== 'played').map((request) => (
                       <div key={request.id} className="flex items-center justify-between p-4 border rounded-lg neon-border bg-dark-card/20">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -894,32 +898,31 @@ const ManagerEvents = () => {
                                 <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                                 </svg>
-                                {request.likes || 0}
-                              </span>
-                              <span className="text-xs">
-                                {new Date(request.createdAt).toLocaleString()}
+                                {request.likeCount || 0}
                               </span>
                             </div>
                           </div>
                         </div>
-                        {request.status === 'pending' && (
-                          <div className="flex items-center space-x-2 ml-4">
-                            <Button
-                              size="sm"
-                              className="neon-button"
-                              onClick={() => handleSongRequestAction(request.id, 'approve', { reason: 'Approved by manager' })}
-                            >
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleSongRequestAction(request.id, 'reject', { reason: 'Rejected by manager' })}
-                            >
-                              Reject
-                            </Button>
-                          </div>
-                        )}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleMarkAsPlayed(request.id)}
+                            className="text-green-400 border-green-400 hover:bg-green-400/10"
+                            title="Mark as Played"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveFromQueue(request.id)}
+                            className="text-red-400 border-red-400 hover:bg-red-400/10"
+                            title="Remove from Queue"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>

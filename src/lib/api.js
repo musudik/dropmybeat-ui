@@ -15,11 +15,17 @@ export const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    // Add auth token if available
+    // Add auth token if available (regular user)
     const token = localStorage.getItem('token')
+    // Add guest token if available (guest user)
+    const guestToken = localStorage.getItem('guestToken')
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    } else if (guestToken) {
+      config.headers.Authorization = `Bearer ${guestToken}`
     }
+    
     return config
   },
   (error) => {
@@ -49,7 +55,9 @@ api.interceptors.response.use(
     const message = error.response?.data?.message || 'An error occurred'
     
     if (error.response?.status === 401) {
+      // Clear both regular and guest tokens on 401
       localStorage.removeItem('token')
+      localStorage.removeItem('guestToken')
       window.location.href = '/login'
       toast.error('Session expired. Please login again.')
     } else if (error.response?.status === 403) {
@@ -184,8 +192,11 @@ export const songRequestAPI = {
   unlike: (eventId, requestId) => api.delete(`/events/${eventId}/song-requests/${requestId}/like`),
   approve: (eventId, requestId, approvalData) => api.post(`/events/${eventId}/song-requests/${requestId}/approve`, approvalData),
   reject: (eventId, requestId, rejectionData) => api.post(`/events/${eventId}/song-requests/${requestId}/reject`, rejectionData),
+  markAsPlayed: (eventId, requestId) => api.post(`/events/${eventId}/song-requests/${requestId}/mark-played`),
+  removeFromQueue: (eventId, requestId) => api.delete(`/events/${eventId}/song-requests/${requestId}/remove-queue`),
   getQueue: (eventId) => api.get(`/events/${eventId}/song-requests/queue`),
   getStats: (eventId) => api.get(`/events/${eventId}/song-requests/stats`),
+  getUserRequestCount: (eventId, userId) => api.get(`/events/${eventId}/song-requests/user/${userId}/count`),
 }
 
 // Health Check API

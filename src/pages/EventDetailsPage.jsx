@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Heart, Music, Clock, Users, MapPin, Calendar, Send, ArrowLeft, Star, ThumbsUp, Search, Play, ExternalLink, Camera } from 'lucide-react'
+import { Heart, Music, Clock, Users, MapPin, Calendar, Send, ArrowLeft, Star, ThumbsUp, Search, Play, ExternalLink, Camera, CheckCircle, X } from 'lucide-react'
 import { eventAPI, songRequestAPI } from '../lib/api'
 import { searchYouTube } from '../lib/youtube'
 import { useAuth } from '../contexts/AuthContext'
@@ -315,7 +315,7 @@ function EventDetailsPage() {
     try {
       // Use the regular event details endpoint which should include participant info
       const response = await eventAPI.getPublic(eventId)
-      setParticipants(response.data.data?.participants || [])
+      setParticipants(response.data.data?.Members || [])
     } catch (error) {
       console.error('Error fetching participants:', error)
       setParticipants([])
@@ -385,6 +385,22 @@ function EventDetailsPage() {
       return
     }
 
+    // Check if user has reached the 5-song limit for Members
+    if (currentUser.role === 'Member') {
+      try {
+        console.log("currentUser.id", currentUser.id);
+        alert(currentUser.id);
+        const countResponse = await songRequestAPI.getUserRequestCount(eventId, currentUser.id)
+        const currentCount = countResponse.data?.count || 0
+        if (currentCount >= 5) {
+          toast.error('You have reached the maximum of 5 song requests for this event')
+          return
+        }
+      } catch (error) {
+        console.error('Failed to check song request count:', error)
+      }
+    }
+
     try {
       setSubmittingRequest(true)
       await songRequestAPI.create(eventId, {
@@ -403,6 +419,36 @@ function EventDetailsPage() {
       toast.error('Failed to submit song request')
     } finally {
       setSubmittingRequest(false)
+    }
+  }
+
+  const handleMarkAsPlayed = async (requestId) => {
+    if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'Manager')) {
+      toast.error('You do not have permission to mark songs as played')
+      return
+    }
+
+    try {
+      await songRequestAPI.markAsPlayed(eventId, requestId)
+      toast.success('Song marked as played')
+      fetchSongRequests() // Refresh the list
+    } catch (error) {
+      toast.error('Failed to mark song as played')
+    }
+  }
+
+  const handleRemoveFromQueue = async (requestId) => {
+    if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'Manager')) {
+      toast.error('You do not have permission to remove songs')
+      return
+    }
+
+    try {
+      await songRequestAPI.removeFromQueue(eventId, requestId)
+      toast.success('Song removed from queue')
+      fetchSongRequests() // Refresh the list
+    } catch (error) {
+      toast.error('Failed to remove song from queue')
     }
   }
 
@@ -766,9 +812,9 @@ function EventDetailsPage() {
                         {participants.length} / {event.maxParticipants || 'Unlimited'}
                       </span>
                     </div>
-                    {event.guestParticipantCount > 0 && (
+                    {event.guestMemberCount > 0 && (
                       <p className="text-xs text-gray-400">
-                        ({event.guestParticipantCount} guests)
+                        ({event.guestMemberCount} guests)
                       </p>
                     )}
                   </div>
@@ -998,7 +1044,7 @@ function EventDetailsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {songRequests.map((request, index) => (
+              {songRequests.filter(request => request.status !== 'played').map((request, index) => (
                 <div key={request.id} className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg border border-gray-700">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center justify-center w-8 h-8 bg-neon-pink/20 rounded-full text-neon-pink font-bold text-sm">
@@ -1013,31 +1059,46 @@ function EventDetailsPage() {
                         </Badge>
                       )}
                       {request.notes && (
-                        <p className="text-gray-500 text-xs mt-1 italic">{request.notes}</p>
+                        <p className="text-gray-500 text-xs mt-1">{request.notes}</p>
                       )}
+                      <p className="text-gray-500 text-xs mt-1">
+                        Requested by: {request.requesterName || 'Unknown'}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <p className="text-xs text-gray-400">Requested by</p>
-                      <p className="text-sm text-white">{request.requestedBy?.firstName || 'Anonymous'}</p>
-                    </div>
-                    {currentUser && (
-                      <Button
-                        onClick={() => handleLikeSong(request.id)}
-                        variant="ghost"
-                        size="sm"
-                        className={`flex items-center gap-1 ${
-                          likedSongs.has(request.id) 
-                            ? 'text-neon-pink hover:text-neon-pink/80' 
-                            : 'text-gray-400 hover:text-neon-pink'
-                        }`}
-                      >
-                        <ThumbsUp className={`h-4 w-4 ${
-                          likedSongs.has(request.id) ? 'fill-current' : ''
-                        }`} />
-                        <span>{request.likeCount || 0}</span>
-                      </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleLikeSong(request.id)}
+                      className={`flex items-center gap-1 ${likedSongs.has(request.id) ? 'text-red-500' : 'text-gray-400'}`}
+                    >
+                      <Heart className={`h-4 w-4 ${likedSongs.has(request.id) ? 'fill-current' : ''}`} />
+                      <span className="text-sm">{request.likeCount || 0}</span>
+                    </Button>
+                    
+                    {/* Admin/Manager Controls */}
+                    {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Manager') && (
+                      <div className="flex gap-1 ml-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleMarkAsPlayed(request.id)}
+                          className="text-green-400 border-green-400 hover:bg-green-400/10"
+                          title="Mark as Played"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveFromQueue(request.id)}
+                          className="text-red-400 border-red-400 hover:bg-red-400/10"
+                          title="Remove from Queue"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -176,7 +176,7 @@ const MobileNav = () => {
                       </div>
 
                       {/* Role-specific Navigation */}
-                      {user?.role === 'admin' && (
+                      {user?.role === 'Admin' && (
                         <div className="pt-4 border-t border-border">
                           <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                             Admin
@@ -209,7 +209,7 @@ const MobileNav = () => {
                         </div>
                       )}
 
-                      {user?.role === 'manager' && (
+                      {user?.role === 'Manager' && (
                         <div className="pt-4 border-t border-border">
                           <p className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                             Manager

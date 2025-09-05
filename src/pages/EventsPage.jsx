@@ -45,19 +45,21 @@ const EventsPage = () => {
       // Handle joined events for authenticated users
       if (user && Array.isArray(events.data)) {
         const userJoinedEvents = events.data
-          .filter(event => event.participants?.some(p => p.user === user.id))
+          .filter(event => {
+            // Check both participants array and user-specific fields
+            return event.Members?.some(p => p.user === user.id || p._id === user.id) ||
+                   event.joinedUsers?.includes(user.id)
+          })
           .map(event => event.id)
         setJoinedEvents(new Set(userJoinedEvents))
       }
       
       // Handle joined events for guest users
       if (isGuest && guestData && Array.isArray(events.data)) {
-        // For guests, check if they've joined any events by email
         const guestJoinedEvents = events.data
           .filter(event => {
-            // Check if guest has joined this event by checking guestParticipants array
-            return event.guestParticipants?.some(guestParticipant => 
-              guestParticipant.email === guestData.email
+            return event.guestMembers?.some(guestMember => 
+              guestMember.email === guestData.email
             )
           })
           .map(event => event.id)
@@ -76,7 +78,7 @@ const EventsPage = () => {
       // Handle joined events for authenticated users
       if (user && Array.isArray(eventsData.data)) {
         const userJoinedEvents = eventsData.data
-          .filter(event => event.participants?.some(p => p.user === user.id))
+          .filter(event => event.Members?.some(p => p.user === user.id))
           .map(event => event.id)
         setJoinedEvents(new Set(userJoinedEvents))
       }
@@ -86,9 +88,9 @@ const EventsPage = () => {
         // For guests, check if they've joined any events by email
         const guestJoinedEvents = eventsData.data
           .filter(event => {
-            // Check if guest has joined this event by checking guestParticipants array
-            return event.guestParticipants?.some(guestParticipant => 
-              guestParticipant.email === guestData.email
+            // Check if guest has joined this event by checking guestMembers array
+            return event.guestMembers?.some(guestMember => 
+              guestMember.email === guestData.email
             )
           })
           .map(event => event.id)
@@ -143,17 +145,40 @@ const EventsPage = () => {
 
   const handleJoinEvent = async (eventId) => {
     try {
-      await eventAPI.join(eventId)
+      if (isGuest && guestData) {
+        // For guests, use the guest join endpoint
+        await eventAPI.joinPublic(eventId, {
+          firstName: guestData.firstName,
+          lastName: guestData.lastName,
+          email: guestData.email
+        })
+      } else {
+        // For authenticated users
+        await eventAPI.join(eventId)
+      }
+      
       setJoinedEvents(prev => new Set([...prev, eventId]))
-      setEvents(prev => prev.map(event => 
-        event.id === eventId 
-          ? { 
-              ...event, 
-              participantCount: (event.participantCount || 0) + 1,
-              totalParticipantCount: (event.totalParticipantCount || 0) + 1
+      setEvents(prev => prev.map(event => {
+        if (event.id === eventId) {
+          const currentMembers = event.MemberCount || 0
+          const currentGuests = event.guestMemberCount || 0
+          
+          if (isGuest) {
+            return {
+              ...event,
+              guestMemberCount: currentGuests + 1,
+              totalMemberCount: currentMembers + currentGuests + 1
             }
-          : event
-      ))
+          } else {
+            return {
+              ...event,
+              MemberCount: currentMembers + 1,
+              totalMemberCount: currentMembers + 1 + currentGuests
+            }
+          }
+        }
+        return event
+      }))
       toast.success('Successfully joined the event!')
     } catch (error) {
       console.error('Error joining event:', error)
@@ -169,15 +194,27 @@ const EventsPage = () => {
         newSet.delete(eventId)
         return newSet
       })
-      setEvents(prev => prev.map(event => 
-        event.id === eventId 
-          ? { 
-              ...event, 
-              participantCount: Math.max((event.participantCount || 1) - 1, 0),
-              totalParticipantCount: Math.max((event.totalParticipantCount || 1) - 1, 0)
+      setEvents(prev => prev.map(event => {
+        if (event.id === eventId) {
+          const currentMembers = event.MemberCount || 0
+          const currentGuests = event.guestMemberCount || 0
+          
+          if (isGuest) {
+            return {
+              ...event,
+              guestMemberCount: Math.max(currentGuests - 1, 0),
+              totalMemberCount: Math.max(currentMembers + currentGuests - 1, 0)
             }
-          : event
-      ))
+          } else {
+            return {
+              ...event,
+              MemberCount: Math.max(currentMembers - 1, 0),
+              totalMemberCount: Math.max(currentMembers - 1 + currentGuests, 0)
+            }
+          }
+        }
+        return event
+      }))
       toast.success('Left the event successfully')
     } catch (error) {
       console.error('Error leaving event:', error)
@@ -429,13 +466,16 @@ const EventsPage = () => {
                   let isJoined = false
                   
                   if (user) {
-                    // For authenticated users, check the joinedEvents set
-                    isJoined = joinedEvents.has(event.id)
+                    // For authenticated users, check the joinedEvents set and also check participants array
+                    isJoined = joinedEvents.has(event.id) || 
+                              event.Members?.some(p => p.user === user.id || p._id === user.id) ||
+                              event.joinedUsers?.includes(user.id)
                   } else if (isGuest && guestData) {
-                    // For guest users, check if their email is in the guestParticipants array
-                    isJoined = event.guestParticipants?.some(guestParticipant => 
-                      guestParticipant.email === guestData.email
-                    ) || false
+                    // For guest users, check if their email is in the guestMembers array
+                    isJoined = joinedEvents.has(event.id) ||
+                              event.guestMembers?.some(guestMember => 
+                                guestMember.email === guestData.email
+                              )
                   }
                   
                   return (
@@ -533,9 +573,9 @@ const EventsPage = () => {
                                 <div className="flex items-center gap-1">
                                   <Users className="w-4 h-4 text-purple-400" />
                                   <span className="font-roboto">
-                                    {event.totalParticipantCount || 0}/{event.maxParticipants || '∞'}
+                                    {event.totalMemberCount || ((event.MemberCount || 0) + (event.guestMemberCount || 0))}/{event.maxParticipants || '∞'}
                                     <span className="text-xs text-gray-400 ml-1">
-                                      ({event.participantCount || 0} + {event.guestParticipantCount || 0} guests)
+                                      ({event.MemberCount || 0} members + {event.guestMemberCount || 0} guests)
                                     </span>
                                   </span>
                                 </div>
@@ -562,9 +602,9 @@ const EventsPage = () => {
                               <div className="flex items-center gap-2">
                                 <Users className="w-4 h-4 text-purple-400 flex-shrink-0" />
                                 <span className="font-roboto">
-                                  {event.totalParticipantCount || 0}/{event.maxParticipants || '∞'} participants
+                                  {event.totalMemberCount || ((event.MemberCount || 0) + (event.guestMemberCount || 0))}/{event.maxParticipants || '∞'} participants
                                   <span className="text-xs text-gray-400 block">
-                                    {event.participantCount || 0} registered + {event.guestParticipantCount || 0} guests
+                                    {event.MemberCount || 0} members + {event.guestMemberCount || 0} guests
                                   </span>
                                 </span>
                               </div>

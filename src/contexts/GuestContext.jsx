@@ -29,7 +29,7 @@ export const GuestProvider = ({ children }) => {
     }
   }, [])
 
-  const setGuestSession = (userData, eventId) => {
+  const setGuestSession = (userData, eventId, token) => {
     const guestSessionData = {
       ...userData,
       eventId,
@@ -40,12 +40,23 @@ export const GuestProvider = ({ children }) => {
     setGuestData(guestSessionData)
     setIsGuest(true)
     localStorage.setItem('guestSession', JSON.stringify(guestSessionData))
+    
+    // Store guest token if provided
+    if (token) {
+      localStorage.setItem('guestToken', token)
+    }
   }
 
   const clearGuestSession = () => {
     setGuestData(null)
     setIsGuest(false)
     localStorage.removeItem('guestSession')
+    localStorage.removeItem('guestToken') // Clear guest token
+  }
+
+  // Add method to check if guest token exists
+  const hasGuestToken = () => {
+    return !!localStorage.getItem('guestToken')
   }
 
   const updateGuestData = (updates) => {
@@ -61,7 +72,8 @@ export const GuestProvider = ({ children }) => {
     isGuest,
     setGuestSession,
     clearGuestSession,
-    updateGuestData
+    updateGuestData,
+    hasGuestToken
   }
 
   return (
