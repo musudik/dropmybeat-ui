@@ -13,13 +13,12 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5000,
     strictPort: true,
-    allowedHosts: ["dropmybeat-api.replit.app"],
+    allowedHosts: ["dropmybeat-api.replit.app", "dropmybeat.replit.app"],
     proxy: {
       "/api": {
-        target: "https://dropmybeat-api.replit.app",
+        target: "http://localhost:3000",
         changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/api/, "")
+        secure: false,
       },
     },
   },
@@ -27,6 +26,6 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5000,
     strictPort: true,
-    allowedHosts: ["dropmybeat-api.replit.app"],
+    allowedHosts: ["dropmybeat-api.replit.app", "dropmybeat.replit.app"],
   },
 });
