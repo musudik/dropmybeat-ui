@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Button } from './ui/button'
+import { Button } from './ui/Button'
 import NotificationCenter from './NotificationCenter'
 import { useRealTime } from '../contexts/RealTimeContext'
 

@@ -7,7 +7,7 @@ import { Input } from '../../components/ui/Input'
 import { Label } from '../../components/ui/Label'
 import { Badge } from '../../components/ui/Badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/Dialog'
-import { Select, SelectItem, SelectTrigger, SelectContent } from '../../components/ui/select'
+import { Select, SelectItem, SelectTrigger, SelectContent } from '../../components/ui/Select'
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/Avatar'
 import { Toast, ToastTitle, ToastDescription } from '../../components/ui/Toast'
 
