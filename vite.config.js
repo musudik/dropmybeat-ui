@@ -16,9 +16,10 @@ export default defineConfig({
     allowedHosts: ["dropmybeat.replit.app"],
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
+        target: "https://dropmybeat-api.replit.app",
         changeOrigin: true,
-        secure: false,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
       },
     },
   },
