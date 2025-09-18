@@ -29,7 +29,7 @@ const Navigation = () => {
           <div className="flex items-center">
             <Link to={isAuthenticated ? "/dashboard" : "/"} className="flex items-center">
               <img 
-                src="/src/assets/DropMyBeats.gif" 
+                src="/DropMyBeats.gif" 
                 alt="DropMyBeats Logo" 
                 className="h-10 w-auto"
               />

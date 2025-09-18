@@ -127,7 +127,7 @@ const MobileNav = () => {
                 <div className="flex items-center justify-between p-4 border-b border-border">
                   <Link to={isAuthenticated ? "/dashboard" : "/"} className="flex items-center">
                     <img 
-                      src="/src/assets/DropMyBeats.gif" 
+                      src="/DropMyBeats.gif" 
                       alt="DropMyBeats Logo" 
                       className="h-8 w-auto"
                     />

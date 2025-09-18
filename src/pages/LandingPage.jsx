@@ -120,7 +120,7 @@ const LandingPage = () => {
                 className="mb-8"
               >
                 <img 
-                  src="/src/assets/DropMyBeats.gif" 
+                  src="/DropMyBeats.gif" 
                   alt="DropMyBeats Logo" 
                   className="h-32 w-auto mx-auto mb-6 drop-shadow-2xl"
                 />
