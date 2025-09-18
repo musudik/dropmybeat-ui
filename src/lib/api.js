@@ -181,6 +181,62 @@ export const eventAPI = {
   },
 }
 
+// Event Feedback API
+export const feedbackAPI = {
+  // Get all approved feedback for an event (public)
+  getAll: (eventId, params = {}) => {
+    const publicApi = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return publicApi.get(`/events/${eventId}/feedback`, { params });
+  },
+  
+  // Submit new feedback (public)
+  submit: (eventId, feedbackData) => {
+    const publicApi = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return publicApi.post(`/events/${eventId}/feedback`, feedbackData);
+  },
+  
+  // Get feedback statistics (public)
+  getStats: (eventId) => {
+    const publicApi = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return publicApi.get(`/events/${eventId}/feedback/stats`);
+  },
+  
+  // Get single feedback (public)
+  getById: (eventId, feedbackId) => {
+    const publicApi = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return publicApi.get(`/events/${eventId}/feedback/${feedbackId}`);
+  },
+  
+  // Approve feedback (Admin/Manager only)
+  approve: (eventId, feedbackId) => api.put(`/events/${eventId}/feedback/${feedbackId}/approve`),
+  
+  // Delete feedback (Admin/Manager only)
+  delete: (eventId, feedbackId) => api.delete(`/events/${eventId}/feedback/${feedbackId}`),
+  
+  // Get all feedback including pending (Admin/Manager only)
+  getAllForModeration: (eventId, params = {}) => api.get(`/events/${eventId}/feedback/moderation`, { params }),
+}
+
 // Song Request API
 export const songRequestAPI = {
   getEventRequests: (eventId, params = {}) => api.get(`/events/${eventId}/song-requests`, { params }),

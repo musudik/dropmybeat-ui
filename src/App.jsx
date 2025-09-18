@@ -20,6 +20,7 @@ import ParticipantJoin from './pages/participant/ParticipantJoin'
 import EventsPage from './pages/EventsPage'
 import JoinEventPage from './pages/JoinEventPage'
 import EventDetailsPage from './pages/EventDetailsPage'
+import EventFeedbackPage from './pages/EventFeedbackPage'
 import MemberDashboard from './pages/member/MemberDashboard'
 import ManagerDashboard from './pages/manager/ManagerDashboard'
 import GuestDashboard from './pages/guest/GuestDashboard'
@@ -43,6 +44,7 @@ const AppContent = () => {
           <Route path="/events" element={<EventsPage />} />
           <Route path="/join/:eventId" element={<JoinEventPage />} />
           <Route path="/event/:eventId" element={<EventDetailsPage />} />
+          <Route path="/events/:eventId/feedback" element={<EventFeedbackPage />} />
           
           {/* Protected routes */}
           <Route path="/dashboard" element={

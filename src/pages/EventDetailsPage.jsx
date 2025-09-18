@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
-import { Heart, Music, Clock, Users, MapPin, Calendar, Send, ArrowLeft, Star, ThumbsUp, Search, Play, ExternalLink, Camera, CheckCircle, X } from 'lucide-react'
+import { Heart, Music, Clock, Users, MapPin, Calendar, Send, ArrowLeft, Star, ThumbsUp, Search, Play, ExternalLink, Camera, CheckCircle, X, QrCode, Copy } from 'lucide-react'
 import { eventAPI, songRequestAPI } from '../lib/api'
 import { searchYouTube } from '../lib/youtube'
 import { useAuth } from '../contexts/AuthContext'
@@ -58,6 +58,22 @@ function EventDetailsPage() {
     if (user.role === 'Admin') return true
     if (user.role === 'Manager' && event?.createdBy === user.id) return true
     return false
+  }
+
+  // Feedback functionality
+  const handleNavigateToFeedback = () => {
+    navigate(`/events/${eventId}/feedback`)
+  }
+
+  const handleCopyFeedbackLink = async () => {
+    try {
+      const feedbackUrl = `${window.location.origin}/events/${eventId}/feedback`
+      await navigator.clipboard.writeText(feedbackUrl)
+      toast.success('Feedback link copied to clipboard!')
+    } catch (error) {
+      console.error('Failed to copy feedback link:', error)
+      toast.error('Failed to copy feedback link')
+    }
   }
 
   // Validate file function
@@ -549,15 +565,34 @@ function EventDetailsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Back Button */}
-      <Button 
-        onClick={() => navigate('/events')} 
-        variant="outline" 
-        className="mb-4"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Events
-      </Button>
+      {/* Navigation and Action Buttons */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <Button 
+          onClick={() => navigate('/events')} 
+          variant="outline"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Events
+        </Button>
+        
+        {/* Feedback Buttons */}
+        <Button 
+          onClick={handleNavigateToFeedback}
+          className="bg-yellow-600 hover:bg-yellow-700 text-white"
+        >
+          <Star className="h-4 w-4 mr-2" />
+          Event Feedback
+        </Button>
+        
+        <Button 
+          onClick={handleCopyFeedbackLink}
+          variant="outline"
+          className="bg-orange-600 hover:bg-orange-700 text-white border-orange-500"
+        >
+          <Copy className="h-4 w-4 mr-2" />
+          Copy Feedback Link
+        </Button>
+      </div>
 
       {/* Guest Welcome Message */}
       {isGuest && guestData && (

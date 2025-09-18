@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Calendar, MapPin, Clock, Users, Music, Plus, Edit, Trash2, Search, QrCode, Copy, X, Power } from 'lucide-react'
+import { Calendar, MapPin, Clock, Users, Music, Plus, Edit, Trash2, Search, QrCode, Copy, X, Power, Star, MessageSquare, ExternalLink } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import { Button } from '../components/ui/button'
 import { Badge, Badge1 } from '../components/ui/badge'
@@ -29,6 +29,7 @@ const EventsPage = () => {
   const [joinedEvents, setJoinedEvents] = useState(new Set())
   const [isQRModalOpen, setIsQRModalOpen] = useState(false)
   const [qrEvent, setQrEvent] = useState(null)
+  const [qrType, setQrType] = useState('join') // 'join' or 'feedback'
 
   const { data: eventsData, isLoading, error } = useQuery({
     queryKey: ['events'],
@@ -242,6 +243,13 @@ const EventsPage = () => {
 
   const handleShowQR = (event) => {
     setQrEvent(event)
+    setQrType('join')
+    setIsQRModalOpen(true)
+  }
+
+  const handleShowFeedbackQR = (event) => {
+    setQrEvent(event)
+    setQrType('feedback')
     setIsQRModalOpen(true)
   }
 
@@ -249,6 +257,28 @@ const EventsPage = () => {
     const joinLink = `${window.location.origin}/join/${eventId}`
     navigator.clipboard.writeText(joinLink)
     toast.success('Join link copied to clipboard!')
+  }
+
+  const handleCopyFeedbackLink = (eventId) => {
+    const feedbackLink = `${window.location.origin}/event/${eventId}/feedback`
+    navigator.clipboard.writeText(feedbackLink)
+    toast.success('Feedback link copied to clipboard!')
+  }
+
+  const handleNavigateToFeedback = (eventId) => {
+    navigate(`/event/${eventId}/feedback`)
+  }
+
+  const handleCopyFeedbackLinkWithEvent = (event, eventId) => {
+    event.stopPropagation()
+    const feedbackUrl = `${window.location.origin}/events/${eventId}/feedback`
+    navigator.clipboard.writeText(feedbackUrl)
+    toast.success('Feedback link copied to clipboard!')
+  }
+
+  const handleNavigateToFeedbackWithEvent = (event, eventId) => {
+    event.stopPropagation()
+    navigate(`/events/${eventId}/feedback`)
   }
 
   const handleCreateEvent = async (eventData) => {
@@ -614,6 +644,28 @@ const EventsPage = () => {
 
                         {/* Action Buttons */}
                         <div className="flex items-center gap-2 mt-4 md:mt-0">
+                          {/* Feedback Navigation Button */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => handleNavigateToFeedbackWithEvent(e, event.id)}
+                            className="bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-500"
+                            title="View Event Feedback"
+                          >
+                            <Star className="h-4 w-4" />
+                          </Button>
+
+                          {/* Copy Feedback Link Button */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => handleCopyFeedbackLinkWithEvent(e, event.id)}
+                            className="bg-orange-600 hover:bg-orange-700 text-white border-orange-500"
+                            title="Copy Feedback Link"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+
                           {/* QR Code Button */}
                           <Button
                             onClick={(e) => {
@@ -639,6 +691,8 @@ const EventsPage = () => {
                           >
                             <Copy className="w-4 h-4" />
                           </Button>
+
+
 
                           {/* Join/Leave Button */}
                           {(user || isGuest) && (
@@ -771,23 +825,58 @@ const EventsPage = () => {
           <DialogHeader>
             <div className="text-center">
               <h2 className="font-oswald text-xl font-bold text-pink-400 mb-2">
-                SHARE EVENT
+                {qrType === 'feedback' ? 'EVENT FEEDBACK' : 'SHARE EVENT'}
               </h2>
               <h3 className="font-oswald text-lg font-semibold text-white mb-2">
                 {qrEvent?.title || qrEvent?.name || 'EVENT NAME'}
               </h3>
               <p className="text-gray-400 text-sm">
-                Scan QR code or share the link to join this event
+                {qrType === 'feedback' 
+                  ? 'Scan QR code or share the link to leave feedback for this event'
+                  : 'Scan QR code or share the link to join this event'
+                }
               </p>
             </div>
           </DialogHeader>
           
           {qrEvent && (
             <div className="space-y-6">
+              {/* QR Type Toggle */}
+              <div className="flex bg-gray-800 rounded-lg p-1">
+                <Button
+                  onClick={() => setQrType('join')}
+                  variant={qrType === 'join' ? 'default' : 'ghost'}
+                  size="sm"
+                  className={`flex-1 font-oswald font-medium ${
+                    qrType === 'join' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Join Event
+                </Button>
+                <Button
+                  onClick={() => setQrType('feedback')}
+                  variant={qrType === 'feedback' ? 'default' : 'ghost'}
+                  size="sm"
+                  className={`flex-1 font-oswald font-medium ${
+                    qrType === 'feedback' 
+                      ? 'bg-yellow-600 text-white' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Star className="w-4 h-4 mr-1" />
+                  Feedback
+                </Button>
+              </div>
+
               <div className="flex justify-center">
                 <div className="bg-white p-6 rounded-lg">
                   <QRCode
-                    value={`${window.location.origin}/join/${qrEvent.id}`}
+                    value={qrType === 'feedback' 
+                      ? `${window.location.origin}/event/${qrEvent.id}/feedback`
+                      : `${window.location.origin}/join/${qrEvent.id}`
+                    }
                     size={200}
                     style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                     viewBox={`0 0 200 200`}
@@ -799,14 +888,20 @@ const EventsPage = () => {
                 <div className="flex items-center gap-2 p-3 bg-gray-800 rounded-lg border border-gray-600">
                   <input 
                     type="text" 
-                    value={`${window.location.origin}/join/${qrEvent.id}`}
+                    value={qrType === 'feedback' 
+                      ? `${window.location.origin}/event/${qrEvent.id}/feedback`
+                      : `${window.location.origin}/join/${qrEvent.id}`
+                    }
                     readOnly
                     className="flex-1 bg-transparent text-sm text-gray-300 outline-none font-mono"
                   />
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => handleCopyJoinLink(qrEvent.id)}
+                    onClick={() => qrType === 'feedback' 
+                      ? handleCopyFeedbackLink(qrEvent.id)
+                      : handleCopyJoinLink(qrEvent.id)
+                    }
                     className="text-gray-400 hover:text-white hover:bg-gray-700 p-2"
                     title="Copy Link"
                   >
@@ -815,7 +910,10 @@ const EventsPage = () => {
                 </div>
                 
                 <div className="text-center text-xs text-gray-500">
-                  Anyone with this link can join the event with their email and name
+                  {qrType === 'feedback' 
+                    ? 'Anyone with this link can leave feedback for the event'
+                    : 'Anyone with this link can join the event with their email and name'
+                  }
                 </div>
               </div>
             </div>

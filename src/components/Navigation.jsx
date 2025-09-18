@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Button } from './ui/Button'
+import { Button } from './ui/button'
 import NotificationCenter from './NotificationCenter'
 import { useRealTime } from '../contexts/RealTimeContext'
 
@@ -18,6 +18,9 @@ const Navigation = () => {
   }
 
   const isActive = (path) => location.pathname === path
+
+  // Check if current route is feedback page
+  const isFeedbackPage = location.pathname.includes('/feedback')
 
   return (
     <nav className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border sticky top-0 z-50">
@@ -104,14 +107,17 @@ const Navigation = () => {
                 <NotificationCenter />
               </>
             ) : (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
-                  Login
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => navigate('/register')}>
-                  Sign Up
-                </Button>
-              </>
+              // Hide login/signup buttons on feedback pages
+              !isFeedbackPage && (
+                <>
+                  <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
+                    Login
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => navigate('/register')}>
+                    Sign Up
+                  </Button>
+                </>
+              )
             )}
           </div>
         </div>
