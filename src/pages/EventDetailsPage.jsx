@@ -248,27 +248,14 @@ function EventDetailsPage() {
       
       // Process logo and banner images if they exist
       if (eventData.logo) {
-        // Convert GridFS ID to image URL
-        eventData.logoUrl = `${import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app')}/events/${eventId}/logo`
+        // Always use proxy path for images to avoid CORS issues
+        eventData.logoUrl = `/api/events/${eventId}/logo`
       }
       
       if (eventData.bannerImage) {
-        // Convert GridFS ID to image URL with error handling
-        const bannerUrl = `${import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app')}/events/${eventId}/banner`
-        
-        // Test if banner URL is accessible
-        try {
-          const bannerResponse = await fetch(bannerUrl, { method: 'HEAD' })
-          if (bannerResponse.ok) {
-            eventData.bannerImageUrl = bannerUrl
-          } else {
-            console.warn('Banner image not accessible:', bannerResponse.status)
-            eventData.bannerImageUrl = null
-          }
-        } catch (bannerError) {
-          console.warn('Banner image fetch failed:', bannerError)
-          eventData.bannerImageUrl = null
-        }
+        // Always use proxy path for images to avoid CORS issues
+        const bannerUrl = `/api/events/${eventId}/banner`
+        eventData.bannerImageUrl = bannerUrl
       }
       
       setEvent(eventData)
