@@ -249,12 +249,12 @@ function EventDetailsPage() {
       // Process logo and banner images if they exist
       if (eventData.logo) {
         // Convert GridFS ID to image URL
-        eventData.logoUrl = `${import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app/api')}/events/${eventId}/logo`
+        eventData.logoUrl = `${import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app')}/events/${eventId}/logo`
       }
       
       if (eventData.bannerImage) {
         // Convert GridFS ID to image URL with error handling
-        const bannerUrl = `${import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app/api')}/events/${eventId}/banner`
+        const bannerUrl = `${import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app')}/events/${eventId}/banner`
         
         // Test if banner URL is accessible
         try {
