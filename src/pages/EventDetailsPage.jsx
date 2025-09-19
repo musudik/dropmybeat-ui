@@ -128,8 +128,8 @@ function EventDetailsPage() {
         response = await eventAPI.uploadBanner(eventId, formData)
       }
       
-      // Update with the actual URL from backend
-      const imageUrl = `${import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'https://dropmybeat-api.replit.app')}/events/${eventId}/${isLogo ? 'logo' : 'banner'}`
+      // Update with the proxy URL to avoid CORS issues
+      const imageUrl = `/api/events/${eventId}/${isLogo ? 'logo' : 'banner'}`
       setEvent(prev => ({ 
         ...prev, 
         [isLogo ? 'logoUrl' : 'bannerImageUrl']: imageUrl,
