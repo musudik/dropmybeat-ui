@@ -344,4 +344,13 @@ export const healthAPI = {
   check: () => axios.get('https://dropmybeat-api.replit.app/health'), // Correct health endpoint
 }
 
+// GDPR API
+export const gdprAPI = {
+  exportData: () => api.post('/gdpr/data-export'),
+  deleteAccount: () => api.post('/gdpr/delete-account'),
+  recordConsent: (consentData) => api.post('/gdpr/consent', consentData),
+  getConsentHistory: () => api.get('/gdpr/consent-history'),
+  requestRectification: (rectificationData) => api.post('/gdpr/rectification-request', rectificationData)
+}
+
 export default api

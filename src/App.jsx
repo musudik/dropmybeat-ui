@@ -3,11 +3,15 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { RealTimeProvider } from './contexts/RealTimeContext'
 import { GuestProvider } from './contexts/GuestContext'
+import { GDPRProvider } from './contexts/GDPRContext'
 import { useAuth } from './contexts/AuthContext'
 import { useGuest } from './contexts/GuestContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Navigation from './components/Navigation'
 import GuestNavigation from './components/GuestNavigation'
+import GDPRConsentBanner from './components/GDPRConsentBanner'
+import GDPRConsentManager from './components/GDPRConsentManager'
+import Footer from './components/Footer'
 
 // Page imports
 import LandingPage from './pages/LandingPage'
@@ -24,6 +28,9 @@ import EventFeedbackPage from './pages/EventFeedbackPage'
 import MemberDashboard from './pages/member/MemberDashboard'
 import ManagerDashboard from './pages/manager/ManagerDashboard'
 import GuestDashboard from './pages/guest/GuestDashboard'
+import PrivacyPolicyPage from './pages/legal/PrivacyPolicyPage'
+import CookiePolicyPage from './pages/legal/CookiePolicyPage'
+import GDPRDataRights from './components/GDPRDataRights'
 import { Role } from './lib/constants'
 
 const AppContent = () => {
@@ -45,6 +52,11 @@ const AppContent = () => {
           <Route path="/join/:eventId" element={<JoinEventPage />} />
           <Route path="/event/:eventId" element={<EventDetailsPage />} />
           <Route path="/events/:eventId/feedback" element={<EventFeedbackPage />} />
+          
+          {/* Legal pages */}
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/cookie-policy" element={<CookiePolicyPage />} />
+          <Route path="/data-rights" element={<GDPRDataRights />} />
           
           {/* Protected routes */}
           <Route path="/dashboard" element={
@@ -108,6 +120,13 @@ const AppContent = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      
+      {/* Footer */}
+      <Footer />
+      
+      {/* GDPR Components */}
+      <GDPRConsentBanner />
+      <GDPRConsentManager />
     </div>
   )
 }
@@ -116,9 +135,11 @@ function App() {
   return (
     <AuthProvider>
       <GuestProvider>
-        <RealTimeProvider>
-          <AppContent />
-        </RealTimeProvider>
+        <GDPRProvider>
+          <RealTimeProvider>
+            <AppContent />
+          </RealTimeProvider>
+        </GDPRProvider>
       </GuestProvider>
     </AuthProvider>
   )
