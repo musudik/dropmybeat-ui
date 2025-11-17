@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
@@ -31,17 +31,69 @@ const LoginPage = () => {
     },
   })
 
+  // Test API connectivity on component mount
+  useEffect(() => {
+    const testAPIConnection = async () => {
+      console.log('🧪 LoginPage: Testing API connection on component mount')
+      console.log('🌍 LoginPage: Environment check:', {
+        VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+        NODE_ENV: import.meta.env.NODE_ENV,
+        MODE: import.meta.env.MODE,
+        DEV: import.meta.env.DEV,
+        PROD: import.meta.env.PROD,
+        BASE_URL: import.meta.env.BASE_URL,
+        allViteVars: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')).reduce((acc, key) => {
+          acc[key] = import.meta.env[key];
+          return acc;
+        }, {})
+      })
+      
+      try {
+        const result = await authAPI.testConnection()
+        console.log('✅ LoginPage: API connection test successful:', result)
+      } catch (error) {
+        console.error('🔴 LoginPage: API connection test failed:', error)
+        toast.error('Warning: Cannot connect to API server. Please check your network.')
+      }
+    }
+
+    testAPIConnection()
+  }, [])
+
   const onSubmit = async (data) => {
+    console.log('🌐 API Base URL:', import.meta.env.VITE_API_BASE_URL)
+    console.log('🔧 Development Mode:', import.meta.env.DEV)
+    
     try {
+      console.log('📡 Calling login API...')
       const result = await login(data)
+      
+      
       if (result.success) {
+        console.log('🎉 Login successful, navigating...')
         toast.success('Login successful!')
         const from = location.state?.from?.pathname || '/dashboard'
+        console.log('🧭 Redirecting to:', from)
         navigate(from)
       } else {
+        console.error('❌ Login failed:', result.error)
         toast.error(result.error || 'Login failed')
       }
     } catch (error) {
+      console.error('💥 Login exception caught:', error)
+      console.error('📊 Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL,
+          headers: error.config?.headers
+        }
+      })
       toast.error('An unexpected error occurred')
     }
   }

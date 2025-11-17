@@ -40,17 +40,73 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login = async (credentials) => {
+    console.log('🔐 AuthContext: Starting login process')
+    console.log('📧 AuthContext: Credentials received:', { 
+      email: credentials.email, 
+      passwordProvided: !!credentials.password 
+    })
+    
     try {
+      console.log('🌐 AuthContext: Making API call to login endpoint')
       const response = await authAPI.login(credentials)
-      const { token, user: userData } = response.data.data
       
-      localStorage.setItem('token', token)
-      setUser(userData)
-      setIsAuthenticated(true)
+      console.log('📡 AuthContext: Raw API response:', response)
+      console.log('📦 AuthContext: Response status:', response.status)
+      console.log('📦 AuthContext: Response headers:', response.headers)
+      console.log('💾 AuthContext: Response data structure:', {
+        hasData: !!response.data,
+        dataKeys: Object.keys(response.data || {}),
+        dataStructure: response.data
+      })
       
-      return { success: true }
+      if (response.data?.data) {
+        const { token, user: userData } = response.data.data
+        
+        console.log('🎟️ AuthContext: Token received:', { 
+          tokenExists: !!token, 
+          tokenLength: token?.length,
+          tokenPrefix: token?.substring(0, 20) + '...'
+        })
+        console.log('👤 AuthContext: User data received:', userData)
+        
+        if (token && userData) {
+          localStorage.setItem('token', token)
+          setUser(userData)
+          setIsAuthenticated(true)
+          
+          console.log('✅ AuthContext: Login successful, user authenticated')
+          return { success: true }
+        } else {
+          console.error('❌ AuthContext: Missing token or user data in response')
+          return { success: false, error: 'Invalid response format from server' }
+        }
+      } else {
+        console.error('❌ AuthContext: Invalid response structure:', response.data)
+        return { success: false, error: 'Invalid response format from server' }
+      }
     } catch (error) {
+      console.error('💥 AuthContext: Login error caught:', error)
+      console.error('📊 AuthContext: Error analysis:', {
+        isAxiosError: error.isAxiosError,
+        hasResponse: !!error.response,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data,
+        responseHeaders: error.response?.headers,
+        requestConfig: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL,
+          headers: error.config?.headers,
+          data: error.config?.data
+        },
+        networkError: !error.response,
+        message: error.message,
+        stack: error.stack
+      })
+      
       const errorMessage = error.response?.data?.message || 'Login failed'
+      console.error('🔴 AuthContext: Returning error:', errorMessage)
       return { success: false, error: errorMessage }
     }
   }
